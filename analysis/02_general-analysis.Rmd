@@ -282,13 +282,13 @@ USAID data categorizes all aid as government-channeled before 2000 because of so
 
 ```{r plot-all-channels}
 plot_usaid_channels_all <- df_donor_us %>%
-  group_by(year, channel_subcategory_name) %>%
+  group_by(year, implementing_partner_sub_category_name) %>%
   summarise(total = sum(oda_us_2011)) %>%
   mutate(perc = total / sum(total)) %>%
-  mutate(channel = ifelse(str_detect(channel_subcategory_name, "NGO"), "NGO", "Other"))
+  mutate(channel = ifelse(str_detect(implementing_partner_sub_category_name, "NGO"), "NGO", "Other"))
 
 ggplot(plot_usaid_channels_all, 
-       aes(x = year, y = perc, colour = channel_subcategory_name)) + 
+       aes(x = year, y = perc, colour = implementing_partner_sub_category_name)) + 
   geom_line(size = 0.5) +
   scale_y_continuous(labels = percent_format(accuracy = 1)) + 
   labs(x = NULL, y = "Percent of US aid given through different channels") +
