@@ -570,7 +570,7 @@ ggplot(df_plot_barriers_oda,
                             total_oda_lead1 > 10000000000), 
               method = "lm", linetype = "21") +
   scale_y_continuous(labels = dollar) +
-  guides(color = FALSE) +
+  guides(color = "none") +
   labs(x = "Number of legal barriers", y = "Total ODA in next year",
        title = "Total ODA in next year",
        subtitle = "Dotted lines show trends when omitting observations\nwith less than $10,000,000,000 in ODA") +
@@ -598,7 +598,7 @@ ggplot(df_plot_barriers_contention,
                             prop_contentious_lead1 > 0.05), 
               method = "lm", linetype = "21") +
   scale_y_continuous(labels = percent) +
-  guides(color = FALSE) +
+  guides(color = "none") +
   labs(x = "Number of legal barriers", 
        y = "Proportion of contentious aid in next year",
        title = "Proportion of contentious aid in next year",
@@ -631,7 +631,7 @@ ggplot(df_plot_barriers_ngos,
                             prop_ngo > 0.05), 
               method = "lm", linetype = "21") +
   scale_y_continuous(labels = percent) +
-  guides(color = FALSE) +
+  guides(color = "none") +
   labs(x = "Number of legal barriers", 
        y = "Proportion of aid to NGOs in next year",
        title = "Proportion of aid channeled to types of NGOs in next year",
@@ -659,7 +659,7 @@ ggplot(df_plot_ccsi_ngos,
        aes(x = v2xcs_ccsi, y = value, color = hypothesis)) +
   geom_point(alpha = 0.25) +
   scale_color_viridis_d(option = "plasma", end = 0.9) +
-  guides(color = FALSE) +
+  guides(color = "none") +
   labs(x = "Civil society index", 
        y = "Variable value in next year",
        title = "Core civil society index") +
