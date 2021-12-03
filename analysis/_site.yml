@@ -1,0 +1,63 @@
+name: donors-crackdowns-aid
+exclude:
+- Makefile
+- Icon?
+navbar:
+  title: NGO Crackdowns and Foreign Aid
+  type: inverse
+  right:
+  - text: Causal model
+    icon: fas fa-exchange-alt
+    href: 00_causal-model-theory.html
+  - text: Data
+    icon: fas fa-table
+    href: 01_get-merge-data.html
+  - text: General analysis
+    icon: fas fa-chart-bar
+    href: 02_general-analysis.html
+  - text: Models
+    icon: fas fa-chart-line
+    menu:
+      - text: "Model details"
+        href: 03_model-details.html
+      - text: "H1: Effect of anti-NGO crackdown on total ODA"
+        href: 03_h1-total-aid.html
+      - text: "H2: Effect of anti-NGO crackdown on aid contentiousness"
+        href: 03_h2-aid-contentiousness.html
+      - text: "H3: Effect of anti-NGO crackdown on aid recipients"
+        href: 03_h3-aid-recipients.html
+  - icon: far fa-file-alt
+    menu:
+      - text: "PDF"
+        href: "output/manuscript.pdf"
+      - text: "Manuscripty PDF"
+        href: "output/manuscript-ms.pdf"
+      - text: "HTML"
+        href: "output/manuscript.html"
+      - text: "Word"
+        href: "output/manuscript.docx"
+      - text: "Citations"
+        href: "output/extracted-citations.bib"
+  - icon: fab fa-github
+    href: https://github.com/andrewheiss/donors-crackdowns-aid
+output:
+  bookdown::html_document2:
+    theme: journal
+    css: html/fixes.css
+    include:
+      after_body: html/footer.html
+    highlight: kate
+    code_folding: hide
+    code_download: yes
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+    toc_depth: 4
+    number_sections: no
+    fig_height: 4
+    fig_width: 7
+    lib_dir: site_libs
+    self_contained: no
+output_dir: _site
+new_session: yes
