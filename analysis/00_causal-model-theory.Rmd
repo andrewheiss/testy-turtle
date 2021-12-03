@@ -221,7 +221,7 @@ ggplot(huge_messy_dag_plot, aes(x = x, y = y, xend = xend, yend = yend)) +
                 color = "black", size = pts(9), parse = TRUE) +
   scale_color_manual(values = c("#B10DC9", "#FF851B", "grey60")) +
   scale_y_reverse() +
-  guides(alpha = FALSE, color = FALSE) +
+  guides(alpha = "none", color = "none") +
   theme_dag()
 ```
 
@@ -315,7 +315,7 @@ ggplot(simplerish_dag_plot, aes(x = x, y = y, xend = xend, yend = yend)) +
                 color = "black", size = pts(9), parse = TRUE) +
   scale_color_manual(values = c("#B10DC9", "#FF851B", "grey60")) +
   scale_y_reverse() +
-  guides(alpha = FALSE, color = FALSE) +
+  guides(alpha = "none", color = "none") +
   theme_dag()
 ```
 
@@ -393,7 +393,7 @@ simple_dag_out <- ggplot(simple_dag_plot, aes(x = x, y = y, xend = xend, yend = 
                 color = "black", size = pts(11), parse = TRUE,
                 nudge_y = 0) +
   scale_color_manual(values = c("#B10DC9", "#FF851B", "grey60")) +
-  guides(alpha = FALSE, color = FALSE) +
+  guides(alpha = "none", color = "none") +
   theme_dag()
 simple_dag_out
 ```
@@ -405,14 +405,14 @@ simple_dag_letters_out <- ggplot(simple_dag_plot, aes(x = x, y = y, xend = xend,
   geom_dag_text(aes(label = letter_only),
                 color = "black", size = pts(11), parse = TRUE) +
   scale_color_manual(values = c("#B10DC9", "#FF851B", "grey60")) +
-  guides(alpha = FALSE, color = FALSE) +
+  guides(alpha = "none", color = "none") +
   theme_dag()
 simple_dag_letters_out
 
 ggsave(here("analysis", "output", "dag_simple_letters.pdf"), simple_dag_letters_out,
        width = 7, height = 3.75, device = cairo_pdf)
 ggsave(here("analysis", "output", "dag_simple_letters.png"), simple_dag_letters_out,
-       width = 7, height = 3.75, dpi = 300, type = "cairo")
+       width = 7, height = 3.75, res = 300, device = ragg::agg_png)
 ```
 
 
@@ -497,4 +497,4 @@ Based on these DAGs, here are the variables we use in our treatment and outcome 
     - Internal conflict: `internal_conflict_past_5`
     - Natural disasters: `natural_dis_count`
 - **Time-invarying confounders**
-  - Country code included as multilevel random effects(`(1 | gwcode)`)
+  - Country code included as multilevel random effects (`(1 + outcome + year | gwcode)`)
