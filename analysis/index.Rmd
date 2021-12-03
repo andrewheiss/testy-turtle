@@ -15,5 +15,5 @@ The previous three decades have seen a proliferation of anti-NGO legislation thr
 
 ## Code
 
-All the raw code and data for this paper is available in a [GitHub repository](https://github.com/andrewheiss/donors-crackdowns-aid).
+All the raw code and data for this paper is available in a [GitHub repository](https://github.com/andrewheiss/testy-turtle).
 

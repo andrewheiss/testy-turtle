@@ -1,5 +1,5 @@
 remote_host = cloud
-remote_dir = ~/sites/stats/public_html/donors-crackdowns-aid
+remote_dir = ~/sites/stats/public_html/testy-turtle
 remote_dest = $(remote_host):$(remote_dir)
 
 ## serve	:	Serve _site/ directory at http://localhost:7000

@@ -1,4 +1,4 @@
-name: donors-crackdowns-aid
+name: testy-turtle
 exclude:
 - Makefile
 - Icon?
@@ -39,7 +39,7 @@ navbar:
       - text: "Citations"
         href: "output/extracted-citations.bib"
   - icon: fab fa-github
-    href: https://github.com/andrewheiss/donors-crackdowns-aid
+    href: https://github.com/andrewheiss/testy-turtle
 output:
   bookdown::html_document2:
     theme: journal
