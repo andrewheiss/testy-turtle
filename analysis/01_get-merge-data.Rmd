@@ -142,14 +142,14 @@ aiddata_final %>% glimpse()
 
 USAID provides the complete dataset for its [Foreign Aid Explorer](https://explorer.usaid.gov/aid-dashboard.html) as a [giant CSV file](https://explorer.usaid.gov/data.html). The data includes both economic and military aid, but it's easy to filter out the military aid. Here we only look at obligations, not disbursements, so that the data is comparable to the OECD data from AidData. The data we downloaded provides constant amounts in 2015 dollars; we rescale that to 2011 to match all other variables. 
 
-### Implementing agencies
+### Implementing/managing agencies
 
 Here are the US government agencies giving out money:
 
 ```{r show-agencies}
 implementing_agencies <- usaid_clean %>%
-  count(implementing_agency_name, subagency_name) %>%
-  arrange(desc(n), implementing_agency_name)
+  count(managing_agency_name, managing_sub_agency_or_bureau_name) %>%
+  arrange(desc(n), managing_agency_name)
 
 implementing_agencies %>% datatable()
 ```
@@ -166,14 +166,14 @@ activities <- usaid_clean %>%
 activities %>% datatable()
 ```
 
-### Channels
+### Channels / implementing partners
 
-USAID distinguishes between domestic, foreign, and international NGOs, companies, multilateral organizations, etc. recipients (or channels) of money:
+USAID distinguishes between domestic, foreign, and international NGOs, companies, multilateral organizations, etc. implementing partners (formerly called channels):
 
 ```{r show-channels}
 channels <- usaid_clean %>%
-  count(channel_category_name, channel_subcategory_name) %>%
-  filter(!is.na(channel_category_name))
+  count(implementing_partner_category_name, implementing_partner_sub_category_name) %>%
+  filter(!is.na(implementing_partner_category_name))
 
 channels %>% datatable(options = list(pageLength = 20))
 ```
@@ -195,7 +195,7 @@ Suparna Chaudhry expanded this data substantially (it now covers `r chaudhry_raw
 
 ### Notes on year coverage
 
-In our original paper from 2017, we used Suparna's data and backfilled it to 1980, since going back in time is possible with the DCJW data—lots of the entries in DCJW include start dates of like 1950 or 1970. Accordingly, our analysis ranged from 1980-2013. However, not all of Suparna's expanded countries when back in time that far, and she focused primarily on 1990+ changes. Additionally—and more importantly—the whole nature of foreign aid and civil society changed drastically after the Cold War. Civil society regulations weren't really used as a political strategy until after 1990. We can confirm that by plotting V-Dem's core civil society index:
+In our original paper from 2017, we used Suparna's data and backfilled it to 1980, since going back in time is possible with the DCJW data—lots of the entries in DCJW include start dates of like 1950 or 1970. Accordingly, our analysis ranged from 1980-2013. However, not all of Suparna's expanded countries went back in time that far, and she focused primarily on 1990+ changes. Additionally—and more importantly—the whole nature of foreign aid and civil society changed drastically after the Cold War. Civil society regulations weren't really used as a political strategy until after 1990. We can confirm that by plotting V-Dem's core civil society index:
 
 ```{r vdem-civil-society-index}
 vdem_clean %>% 
