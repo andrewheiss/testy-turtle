@@ -1,0 +1,280 @@
+---
+title: "Model details"
+author: "Suparna Chaudhry and Andrew Heiss"
+date: "`r format(Sys.time(), '%F')`"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.retina = 3,
+                      tidy.opts = list(width.cutoff = 120),  # For code
+                      options(width = 90),  # For output
+                      fig.asp = 0.618, fig.width = 7, 
+                      fig.align = "center", out.width = "85%")
+
+options(dplyr.summarise.inform = FALSE,
+        knitr.kable.NA = "")
+```
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(brms)
+library(glue)
+library(kableExtra)
+library(lubridate)
+library(here)
+
+withr::with_dir(here::here(), {
+  # Treatment models
+  tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
+             m_oda_treatment_entry, m_oda_treatment_funding, 
+             m_oda_treatment_ccsi, m_oda_treatment_repress))
+  tar_load(c(m_purpose_treatment_total, m_purpose_treatment_advocacy, 
+             m_purpose_treatment_entry, m_purpose_treatment_funding, 
+             m_purpose_treatment_ccsi, m_purpose_treatment_repress))
+  tar_load(c(m_recip_treatment_total_dom, m_recip_treatment_advocacy_dom, 
+             m_recip_treatment_entry_dom, m_recip_treatment_funding_dom, 
+             m_recip_treatment_ccsi_dom, m_recip_treatment_repress_dom))
+  tar_load(c(m_recip_treatment_total_foreign, m_recip_treatment_advocacy_foreign, 
+             m_recip_treatment_entry_foreign, m_recip_treatment_funding_foreign, 
+             m_recip_treatment_ccsi_foreign, m_recip_treatment_repress_foreign))
+  
+  # Outcome models
+  tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
+             m_oda_outcome_entry, m_oda_outcome_funding,
+             m_oda_outcome_ccsi, m_oda_outcome_repress))
+  tar_load(c(m_purpose_outcome_total, m_purpose_outcome_advocacy, 
+             m_purpose_outcome_entry, m_purpose_outcome_funding,
+             m_purpose_outcome_ccsi, m_purpose_outcome_repress))
+  tar_load(c(m_recip_outcome_total_dom, m_recip_outcome_advocacy_dom, 
+             m_recip_outcome_entry_dom, m_recip_outcome_funding_dom,
+             m_recip_outcome_ccsi_dom, m_recip_outcome_repress_dom))
+  tar_load(c(m_recip_outcome_total_foreign, m_recip_outcome_advocacy_foreign, 
+             m_recip_outcome_entry_foreign, m_recip_outcome_funding_foreign,
+             m_recip_outcome_ccsi_foreign, m_recip_outcome_repress_foreign))
+})
+```
+
+```{r model-df}
+model_df <- tibble(
+  model_name = c("m_oda_treatment_total", "m_oda_treatment_advocacy",
+                 "m_oda_treatment_entry", "m_oda_treatment_funding",
+                 "m_oda_treatment_ccsi", "m_oda_treatment_repress",
+                 "m_oda_outcome_total", "m_oda_outcome_advocacy",
+                 "m_oda_outcome_entry", "m_oda_outcome_funding",
+                 "m_oda_outcome_ccsi", "m_oda_outcome_repress",
+                 "m_purpose_treatment_total", "m_purpose_treatment_advocacy",
+                 "m_purpose_treatment_entry", "m_purpose_treatment_funding",
+                 # "m_purpose_treatment_ccsi", "m_purpose_treatment_repress",
+                 "m_purpose_outcome_total", "m_purpose_outcome_advocacy",
+                 "m_purpose_outcome_entry", "m_purpose_outcome_funding",
+                 # "m_purpose_outcome_ccsi", "m_purpose_outcome_repress"
+                 "m_recip_treatment_total_dom", "m_recip_treatment_advocacy_dom", 
+                 "m_recip_treatment_entry_dom", "m_recip_treatment_funding_dom", 
+                 # "m_recip_treatment_ccsi_dom", "m_recip_treatment_repress_dom",
+                 "m_recip_outcome_total_dom", "m_recip_outcome_advocacy_dom", 
+                 "m_recip_outcome_entry_dom", "m_recip_outcome_funding_dom",
+                 # "m_recip_outcome_ccsi_dom", "m_recip_outcome_repress_dom",
+                 "m_recip_treatment_total_foreign", "m_recip_treatment_advocacy_foreign", 
+                 "m_recip_treatment_entry_foreign", "m_recip_treatment_funding_foreign", 
+                 # "m_recip_treatment_ccsi_foreign", "m_recip_treatment_repress_foreign",
+                 "m_recip_outcome_total_foreign", "m_recip_outcome_advocacy_foreign", 
+                 "m_recip_outcome_entry_foreign", "m_recip_outcome_funding_foreign"#,
+                 # "m_recip_outcome_ccsi_foreign", "m_recip_outcome_repress_foreign"
+  )) %>% 
+  mutate(actual_model = map(model_name, ~eval(rlang::sym(.)))) %>% 
+  # Put standalone unlisted brms models in a list so that they can be unnested
+  mutate(actual_model = ifelse(map_chr(actual_model, ~class(.)) == "brmsfit",
+                               map(actual_model, ~list(.)), actual_model)) %>% 
+  mutate(list_names = map(actual_model, ~names(.)))
+
+model_details_df <- model_df %>% 
+  unnest(c(actual_model, list_names)) %>% 
+  mutate(stage = ifelse(str_detect(model_name, "treatment"),
+                        "Treatment", "Outcome")) %>% 
+  mutate(category = case_when(
+    str_detect(list_names, "_num") ~ "Numerator",
+    str_detect(list_names, "_denom") ~ "Denominator",
+    str_detect(list_names, "\\d+") ~ paste0("IPTW truncated at ", str_extract(list_names, "\\d+")),
+    TRUE ~ NA_character_
+  )) %>% 
+  mutate(outcome = case_when(
+    str_detect(model_name, "_oda_") ~ "Total aid",
+    str_detect(model_name, "_purpose_") ~ "Aid contentiousness",
+    str_detect(model_name, "recip_.*_dom") ~ "Aid recipients (domestic)",
+    str_detect(model_name, "recip_.*_foreign") ~ "Aid recipients (foreign)"
+  )) %>% 
+  mutate(treatment = case_when(
+    str_detect(model_name, "_total") ~ "Total barriers",
+    str_detect(model_name, "_advocacy") ~ "Barriers to advocacy",
+    str_detect(model_name, "_entry") ~ "Barriers to entry",
+    str_detect(model_name, "_funding") ~ "Barriers to funding",
+    str_detect(model_name, "_ccsi") ~ "Civil society index",
+    str_detect(model_name, "_repress") ~ "Civil society repression"
+  )) %>% 
+  mutate(across(c(stage, category, outcome, treatment), ~fct_inorder(., ordered = TRUE)))
+
+model_details_summarized <- model_details_df %>% 
+  mutate(duration = map(actual_model, ~rstan::get_elapsed_time(.$fit)),
+         duration = map(duration, ~rownames_to_column(as_tibble(.)))) %>% 
+  select(-actual_model) %>% 
+  unnest(duration) %>% 
+  mutate(model_name = glue("<code>{model_name}</code>")) %>% 
+  group_by(Model = model_name, Treatment = treatment, Outcome = outcome,
+           Stage = stage, Details = category) %>% 
+  summarize(`Total time (i.e. longest chain)` = as.duration(max(warmup + sample))) %>%
+  ungroup() %>% 
+  arrange(Outcome, Treatment, Stage, Details)
+```
+
+```{r set-computer-details, include=FALSE}
+computer <- "Personal"
+
+computer_details <- case_when(
+  computer == "Work" ~ "2019 MacBook Pro with 16 cores and 32 GB of RAM, using Stan through brms through cmdstanr",
+  computer == "Personal" ~ "2016 MacBook Pro with 4 cores and 16 GB of RAM, using Stan through brms through cmdstanr"
+)
+
+dur <- as.period(as.duration(sum(model_details_summarized$`Total time (i.e. longest chain)`)))
+
+total_run_time <- glue("{hours} hours, {minutes} minutes, and {seconds} seconds",
+                       hours = hour(dur), minutes = minute(dur), seconds = round(second(dur), 0))
+```
+
+We ran these models on a `r computer_details`. In total, it took `r total_run_time` to run everything.
+
+\ 
+
+# Model run times
+
+## Models for H~1~ (total ODA)
+
+```{r running-time-oda}
+model_details_h1 <- model_details_summarized %>% 
+  filter(Outcome == "Total aid")
+
+total_row_h1 <- tibble(
+  Treatment = "Total", 
+  Model = "All models",
+  `Total time (i.e. longest chain)` = 
+    as.duration(sum(model_details_h1$`Total time (i.e. longest chain)`))
+)
+
+model_time_h1 <- model_details_h1 %>% 
+  bind_rows(total_row_h1) 
+
+model_time_h1 %>% 
+  select(-Treatment, -Outcome) %>% 
+  rename(` ` = Model) %>% 
+  kbl(escape = FALSE) %>% 
+  pack_rows(index = table(fct_inorder(model_time_h1$Treatment))) %>% 
+  kable_styling()
+```
+
+## Models for H~2~ (aid contentiousness)
+
+```{r running-time-purpose}
+model_details_h2 <- model_details_summarized %>% 
+  filter(Outcome == "Aid contentiousness")
+
+total_row_h2 <- tibble(
+  Treatment = "Total", 
+  Model = "All models",
+  `Total time (i.e. longest chain)` = 
+    as.duration(sum(model_details_h2$`Total time (i.e. longest chain)`))
+)
+
+model_time_h2 <- model_details_h2 %>% 
+  bind_rows(total_row_h2) 
+
+model_time_h2 %>% 
+  select(-Treatment, -Outcome) %>% 
+  rename(` ` = Model) %>% 
+  kbl(escape = FALSE) %>% 
+  pack_rows(index = table(fct_inorder(model_time_h2$Treatment))) %>% 
+  kable_styling()
+```
+
+## Models for H~3~ (aid recipients)
+
+### Domestic NGOs
+
+```{r running-time-recipients-dom}
+model_details_h3_dom <- model_details_summarized %>% 
+  filter(Outcome == "Aid recipients (domestic)")
+
+total_row_h3_dom <- tibble(
+  Treatment = "Total", 
+  Model = "All models",
+  `Total time (i.e. longest chain)` = 
+    as.duration(sum(model_details_h3_dom$`Total time (i.e. longest chain)`))
+)
+
+model_time_h3_dom <- model_details_h3_dom %>% 
+  bind_rows(total_row_h3_dom) 
+
+model_time_h3_dom %>% 
+  select(-Treatment, -Outcome) %>% 
+  rename(` ` = Model) %>% 
+  kbl(escape = FALSE) %>% 
+  pack_rows(index = table(fct_inorder(model_time_h3_dom$Treatment))) %>% 
+  kable_styling()
+```
+
+### Foreign NGOs
+
+```{r running-time-recipients-foreign}
+model_details_h3_foreign <- model_details_summarized %>% 
+  filter(Outcome == "Aid recipients (foreign)")
+
+total_row_h3_foreign <- tibble(
+  Treatment = "Total", 
+  Model = "All models",
+  `Total time (i.e. longest chain)` = 
+    as.duration(sum(model_details_h3_foreign$`Total time (i.e. longest chain)`))
+)
+
+model_time_h3_foreign <- model_details_h3_foreign %>% 
+  bind_rows(total_row_h3_foreign) 
+
+model_time_h3_foreign %>% 
+  select(-Treatment, -Outcome) %>% 
+  rename(` ` = Model) %>% 
+  kbl(escape = FALSE) %>% 
+  pack_rows(index = table(fct_inorder(model_time_h3_foreign$Treatment))) %>% 
+  kable_styling()
+```
+
+
+# Actual code
+
+All the models are run with a **`targets`** pipeline with dataset-specific functions that live in these files:
+
+- `R/models_oda.R` (for total aid (H~1~))
+- `R/models_purpose.R` (for aid contentiousness (H~2~))
+- `R/models_recipients.R` (for aid recipients (H~3~))
+- `R/funs_models-iptw.R` (for calculating inverse probability weights)
+
+To keep the analysis relatively self contained here in the analysis notebook, and to make it so there's no need to hunt through the GitHub repository to find the actual code, here's that code:
+
+#### `R/models_oda.R`
+
+```{r, code=xfun::read_utf8(here::here("R", "models_oda.R")), eval=FALSE, class.source="fold-hide"}
+```
+
+#### `R/models_purpose.R`
+
+```{r, code=xfun::read_utf8(here::here("R", "models_purpose.R")), eval=FALSE, class.source="fold-hide"}
+```
+
+#### `R/models_recipients.R`
+
+```{r, code=xfun::read_utf8(here::here("R", "models_recipients.R")), eval=FALSE, class.source="fold-hide"}
+```
+
+#### `R/funs_models-iptw.R`
+
+```{r, code=xfun::read_utf8(here::here("R", "funs_models-iptw.R")), eval=FALSE, class.source="fold-hide"}
+```
