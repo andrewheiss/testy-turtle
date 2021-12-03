@@ -318,7 +318,7 @@ fig_dvs
 ggsave(here("analysis", "output", "fig-dvs.pdf"), fig_dvs,
        width = 6.5, height = 4.75, device = cairo_pdf)
 ggsave(here("analysis", "output", "fig-dvs.png"), fig_dvs,
-       width = 6.5, height = 4.75, dpi = 300, type = "cairo")
+       width = 6.5, height = 4.75, res = 300, device = ragg::agg_png)
 ```
 
 
@@ -452,7 +452,7 @@ barriers_summary
 ggsave(here("analysis", "output", "fig-barriers-summary.pdf"), barriers_summary,
        width = 6.5, height = 6, device = cairo_pdf)
 ggsave(here("analysis", "output", "fig-barriers-summary.png"), barriers_summary,
-       width = 6.5, height = 6, dpi = 300, type = "cairo")
+       width = 6.5, height = 6, res = 300, device = ragg::agg_png)
 ```
 
 ## Compulsory vs. burdensome registration
@@ -486,7 +486,7 @@ fig_regulation_burden
 ggsave(here("analysis", "output", "fig-regulation-burden.pdf"), fig_dvs,
        width = 6, height = 2.5, device = cairo_pdf)
 ggsave(here("analysis", "output", "fig-regulation-burden.png"), fig_dvs,
-       width = 6, height = 2.5, dpi = 300, type = "cairo")
+       width = 6, height = 2.5, res = 300, device = ragg::agg_png)
 ```
 
 
@@ -695,8 +695,8 @@ plot_civicus_map <- ggplot() +
 plot_civicus_map
 ggsave(here("analysis", "output", "fig-civicus-map.pdf"), plot_civicus_map,
        width = 5.5, height = 3, device = cairo_pdf)
-ggsave(here("analysis", "output", "fig-civicus-map.png"), plot_civicus_map,
-       width = 5.5, height = 3, dpi = 300, type = "cairo")
+ggsave(here("analysis", "output", "fig-civicus-map-new.png"), plot_civicus_map,
+       width = 5.5, height = 3, res = 300, device = ragg::agg_png)
 ```
 
 
