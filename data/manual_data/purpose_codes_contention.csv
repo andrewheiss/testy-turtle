@@ -1,0 +1,48 @@
+purpose_code_short,purpose_sector,purpose_category,purpose_contentiousness
+100,Social,Social Infrastructure,Low
+110,Social,Education,Low
+111,Social,Education,Low
+112,Social,Education,Low
+113,Social,Education,Low
+114,Social,Education,Low
+120,Social,Health,Low
+121,Social,Health,Low
+122,Social,Health,Low
+130,Social,Population,Low
+140,Social,Water,Low
+150,Social,Government,High
+151,Social,Government,High
+152,Social,Conflict,High
+160,Social,Other,Low
+200,Eco,Economic Infrastructure,Low
+210,Eco,Transport,Low
+220,Eco,Communication,Low
+230,Eco,Energy,Low
+240,Eco,Bank,Low
+250,Eco,Business,Low
+300,Prod,Production,Low
+310,Prod,Agriculture,Low
+311,Prod,Agriculture,Low
+312,Prod,Forestry,Low
+313,Prod,Fishing,Low
+320,Prod,Industry,Low
+321,Prod,Industry,Low
+322,Prod,Mining,Low
+323,Prod,Construction,Low
+331,Prod,Trade,Low
+332,Prod,Trade,Low
+410,Multisector,Environment,Low
+420,Multisector,Women in development,Low
+430,Multisector,Other,Low
+510,Non Sector,Programme Aid,Low
+520,Non Sector,Food,Low
+530,Non Sector,Programme Aid,Low
+600,Non Sector,Debt,Low
+700,Non Sector,Emergency,Low
+720,Non Sector,Emergency,Low
+730,Non Sector,Emergency,Low
+740,Non Sector,Emergency,Low
+910,Non Sector,Other,Low
+920,Non Sector,Support to NGOs,Low
+930,Non Sector,Other,Low
+998,Non Sector,Other,Low
