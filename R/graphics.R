@@ -116,7 +116,8 @@ theme_donors <- function(base_size = 11, base_family = "Noto Sans", prior = FALS
 
 theme_donors_map <- function(base_size = 9, base_family = "Noto Sans") {
   ret <- theme_void(base_size, base_family) +
-    theme(legend.position = "bottom")
+    theme(plot.background = element_rect(fill = "#ffffff", colour = NA),
+          legend.position = "bottom")
   
   ret
 }
