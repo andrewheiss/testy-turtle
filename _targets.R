@@ -93,8 +93,12 @@ list(
   tar_target(dac_eligible_raw_file,
              here_rel("data", "manual_data", "oecd_dac_countries.csv")),
   tar_target(usaid_raw_file,
+             # https://foreignassistance.gov/data
              get_usaid(
-               usaid_url = "https://explorer.usaid.gov/prepared/us_foreign_aid_complete.csv",
+               usaid_url = "https://s3.amazonaws.com/files.explorer.devtechlab.com/us_foreign_aid_complete.csv",
+               # If/when that URL breaks, this works, but it's super slow:
+               # usaid_url = paste0("https://web.archive.org/web/20210318063824/",
+               #                    "https://explorer.usaid.gov/prepared/us_foreign_aid_complete.csv"),
                out_dir = here_rel("data", "raw_data", "USAID")),
              format = "file"),
   tar_target(dcjw_raw_file, 

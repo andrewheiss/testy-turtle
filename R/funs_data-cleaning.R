@@ -8,6 +8,7 @@ library(readxl)
 library(WDI)
 suppressPackageStartupMessages(library(sf))
 library(jsonlite)
+suppressPackageStartupMessages(library(janitor))
 
 
 # Lookup tables -----------------------------------------------------------
@@ -389,7 +390,8 @@ clean_usaid <- function(path, skeleton) {
   usaid_raw <- read_csv(path, na = c("", "NA", "NULL"), col_types = cols())
   
   usaid_clean <- usaid_raw %>%
-    filter(assistance_category_name == "Economic") %>%
+    clean_names() %>% 
+    filter(foreign_assistance_objective_name == "Economic") %>%
     filter(transaction_type_name == "Obligations") %>%
     mutate(country_code = recode(country_code, `CS-KM` = "XKK")) %>%
     # Remove regions and World
@@ -400,13 +402,14 @@ clean_usaid <- function(path, skeleton) {
     mutate(gwcode = countrycode(country_code, "iso3c", "gwn",
                                 custom_match = c("YEM" = 678, "XKK" = 347))) %>%
     select(gwcode, year = fiscal_year, 
-           implementing_agency_name, subagency_name, activity_name,
-           channel_category_name, channel_subcategory_name, dac_sector_code,
-           oda_us_current = current_amount, oda_us_2015 = constant_amount) %>%
+           managing_agency_name, managing_sub_agency_or_bureau_name, activity_name,
+           implementing_partner_category_name, implementing_partner_sub_category_name,
+           international_sector_code,
+           oda_us_current = current_dollar_amount, oda_us_2015 = constant_dollar_amount) %>%
     mutate(aid_deflator = oda_us_current / oda_us_2015 * 100) %>%
-    mutate(channel_ngo_us = channel_subcategory_name == "NGO - United States",
-           channel_ngo_int = channel_subcategory_name == "NGO - International",
-           channel_ngo_dom = channel_subcategory_name == "NGO - Non United States")
+    mutate(channel_ngo_us = implementing_partner_sub_category_name == "NGO - United States",
+           channel_ngo_int = implementing_partner_sub_category_name == "NGO - International",
+           channel_ngo_dom = implementing_partner_sub_category_name == "NGO - Non United States")
 
   return(usaid_clean)
 }
