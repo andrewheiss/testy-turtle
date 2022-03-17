@@ -70,7 +70,6 @@ list(
   ## Helper functions ----
   tar_target(plot_funs, here_rel("R", "graphics.R"), format = "file"),
   tar_target(misc_funs, here_rel("R", "misc.R"), format = "file"),
-
   
   ## Raw data files ----
   tar_target(chaudhry_raw_file,
@@ -212,30 +211,30 @@ list(
   
   ## Variable details ----
   tar_target(var_details, create_vars_table()),
-  tar_target(ngo_index_table, create_ngo_index_table())#,
+  tar_target(ngo_index_table, create_ngo_index_table()),
+
   
-  
-  # ## Models ----
-  # ### Models for H1: total aid ----
-  # tar_target(m_oda_treatment_total, f_oda_treatment_total(country_aid_final)),
-  # tar_target(df_oda_iptw_total, create_iptws(country_aid_final, m_oda_treatment_total)),
-  # tar_target(m_oda_outcome_total, f_oda_outcome_total(df_oda_iptw_total)),
-  # 
-  # tar_target(m_oda_treatment_advocacy, f_oda_treatment_advocacy(country_aid_final)),
-  # tar_target(df_oda_iptw_advocacy, create_iptws(country_aid_final, m_oda_treatment_advocacy)),
-  # tar_target(m_oda_outcome_advocacy, f_oda_outcome_advocacy(df_oda_iptw_advocacy)),
-  # 
-  # tar_target(m_oda_treatment_entry, f_oda_treatment_entry(country_aid_final)),
-  # tar_target(df_oda_iptw_entry, create_iptws(country_aid_final, m_oda_treatment_entry)),
-  # tar_target(m_oda_outcome_entry, f_oda_outcome_entry(df_oda_iptw_entry)),
-  # 
-  # tar_target(m_oda_treatment_funding, f_oda_treatment_funding(country_aid_final)),
-  # tar_target(df_oda_iptw_funding, create_iptws(country_aid_final, m_oda_treatment_funding)),
-  # tar_target(m_oda_outcome_funding, f_oda_outcome_funding(df_oda_iptw_funding)),
-  # 
-  # tar_target(m_oda_treatment_ccsi, f_oda_treatment_ccsi(country_aid_final)),
-  # tar_target(df_oda_iptw_ccsi, create_iptws(country_aid_final, m_oda_treatment_ccsi)),
-  # tar_target(m_oda_outcome_ccsi, f_oda_outcome_ccsi(df_oda_iptw_ccsi)),
+  ## Models ----
+  ### Models for H1: total aid ----
+  tar_target(m_oda_treatment_total, f_oda_treatment_total(trim_oecd(country_aid_final))),
+  tar_target(df_oda_iptw_total, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_total)),
+  tar_target(m_oda_outcome_total, f_oda_outcome_total(df_oda_iptw_total)),
+
+  tar_target(m_oda_treatment_advocacy, f_oda_treatment_advocacy(trim_oecd(country_aid_final))),
+  tar_target(df_oda_iptw_advocacy, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_advocacy)),
+  tar_target(m_oda_outcome_advocacy, f_oda_outcome_advocacy(df_oda_iptw_advocacy)),
+
+  tar_target(m_oda_treatment_entry, f_oda_treatment_entry(trim_oecd(country_aid_final))),
+  tar_target(df_oda_iptw_entry, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_entry)),
+  tar_target(m_oda_outcome_entry, f_oda_outcome_entry(df_oda_iptw_entry)),
+
+  tar_target(m_oda_treatment_funding, f_oda_treatment_funding(trim_oecd(country_aid_final))),
+  tar_target(df_oda_iptw_funding, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_funding)),
+  tar_target(m_oda_outcome_funding, f_oda_outcome_funding(df_oda_iptw_funding)),
+
+  tar_target(m_oda_treatment_ccsi, f_oda_treatment_ccsi(country_aid_final)),
+  tar_target(df_oda_iptw_ccsi, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_ccsi)),
+  tar_target(m_oda_outcome_ccsi, f_oda_outcome_ccsi(df_oda_iptw_ccsi)),
   # 
   # ### Models for H2: aid contentiousness ----
   # tar_target(m_purpose_treatment_total, 
@@ -329,33 +328,33 @@ list(
   #            create_iptws(country_aid_final_winsor, m_recip_treatment_funding_foreign)),
   # tar_target(m_recip_outcome_funding_foreign, 
   #            f_recip_outcome_funding_foreign(df_recip_iptw_funding_foreign)),
-  # 
-  # ## Model tables ----
-  # # Build tables here because they take forever
-  # # Note tibble::lst() instead of base::list(); lst() auto-names the elements by
-  # # their object names
-  # 
-  # # H1
-  # tar_target(models_tbl_h1_treatment_num,
-  #            build_modelsummary(lst(m_oda_treatment_total$model_num,
-  #                                   m_oda_treatment_advocacy$model_num,
-  #                                   m_oda_treatment_entry$model_num,
-  #                                   m_oda_treatment_funding$model_num,
-  #                                   m_oda_treatment_ccsi$model_num))),
-  # tar_target(models_tbl_h1_treatment_denom,
-  #            build_modelsummary(lst(m_oda_treatment_total$model_denom,
-  #                                   m_oda_treatment_advocacy$model_denom,
-  #                                   m_oda_treatment_entry$model_denom,
-  #                                   m_oda_treatment_funding$model_denom,
-  #                                   m_oda_treatment_ccsi$model_denom))),
-  # tar_target(models_tbl_h1_outcome_dejure,
-  #            build_modelsummary(lst(m_oda_outcome_total, m_oda_outcome_advocacy,
-  #                                   m_oda_outcome_entry, m_oda_outcome_funding))),
-  # tar_target(models_tbl_h1_outcome_defacto,
-  #            build_modelsummary(lst(m_oda_outcome_ccsi$model_100, 
-  #                                   m_oda_outcome_ccsi$model_500,
-  #                                   m_oda_outcome_ccsi$model_1000, 
-  #                                   m_oda_outcome_ccsi$model_5000))),
+
+  ## Model tables ----
+  # Build tables here because they take forever
+  # Note tibble::lst() instead of base::list(); lst() auto-names the elements by
+  # their object names
+
+  # H1
+  tar_target(models_tbl_h1_treatment_num,
+             build_modelsummary(lst(m_oda_treatment_total$model_num,
+                                    m_oda_treatment_advocacy$model_num,
+                                    m_oda_treatment_entry$model_num,
+                                    m_oda_treatment_funding$model_num,
+                                    m_oda_treatment_ccsi$model_num))),
+  tar_target(models_tbl_h1_treatment_denom,
+             build_modelsummary(lst(m_oda_treatment_total$model_denom,
+                                    m_oda_treatment_advocacy$model_denom,
+                                    m_oda_treatment_entry$model_denom,
+                                    m_oda_treatment_funding$model_denom,
+                                    m_oda_treatment_ccsi$model_denom))),
+  tar_target(models_tbl_h1_outcome_dejure,
+             build_modelsummary(lst(m_oda_outcome_total, m_oda_outcome_advocacy,
+                                    m_oda_outcome_entry, m_oda_outcome_funding))),
+  tar_target(models_tbl_h1_outcome_defacto,
+             build_modelsummary(lst(m_oda_outcome_ccsi$model_100,
+                                    m_oda_outcome_ccsi$model_500,
+                                    m_oda_outcome_ccsi$model_1000,
+                                    m_oda_outcome_ccsi$model_5000)))#,
   # 
   # # H2
   # tar_target(models_tbl_h2_treatment_num,

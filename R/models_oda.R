@@ -10,17 +10,18 @@ oda_setup <- function() {
   BAYES_SEED <- 4045  # From random.org
   
   # Priors
-  prior_num <- c(set_prior("normal(0, 10)", class = "Intercept"),
+  prior_num <- c(set_prior("student_t(5, 0, 1.5)", class = "Intercept"),
                  set_prior("normal(0, 2.5)", class = "b"),
                  set_prior("cauchy(0, 1)", class = "sd"))
   
-  prior_denom <- c(set_prior("normal(0, 10)", class = "Intercept"),
+  prior_denom <- c(set_prior("student_t(5, 0, 1.5)", class = "Intercept"),
                    set_prior("normal(0, 2.5)", class = "b"),
-                   set_prior("normal(0, 2.5)", class = "sd"))
+                   set_prior("cauchy(0, 1)", class = "sd"))
   
-  prior_out <- c(set_prior("normal(0, 20)", class = "Intercept"),
-                 set_prior("normal(0, 3)", class = "b"),
-                 set_prior("cauchy(0, 1)", class = "sd"))
+  prior_out <- c(set_prior("normal(0, 10)", class = "Intercept"),
+                 set_prior("normal(0, 1)", class = "b"),
+                 set_prior("cauchy(0, 1)", class = "sd"),
+                 set_prior("lkj(6)", class = "cor"))
   
   return(list(chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED,
               prior_num = prior_num, prior_denom = prior_denom, prior_out = prior_out))
@@ -35,28 +36,34 @@ f_oda_treatment_total <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model_num <- brm(
-    bf(barriers_total ~ barriers_total_lag1 + (1 | gwcode)),
+    bf(barriers_total ~ barriers_total_lag1 + 
+         barriers_total_lag2_cumsum + (1 | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_num,
     control = list(adapt_delta = 0.99),
+    threads = threading(2),
     chains = oda_settings$chains, iter = oda_settings$iter,
     warmup = oda_settings$warmup, seed = oda_settings$seed
   )
   
   model_denom <- brm(
-    bf(barriers_total ~ barriers_total_lag1 + total_oda_log_lag1 +
+    bf(barriers_total ~ barriers_total_lag1 + 
+         barriers_total_lag2_cumsum + total_oda_log_lag1 +
          # Human rights and politics
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          # Economics and development
          gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          # Conflict and disasters
          internal_conflict_past_5 + natural_dis_count +
-         (1 | gwcode)),
+         (1 | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_denom,
     control = list(adapt_delta = 0.9),
+    threads = threading(2),
     chains = oda_settings$chains, iter = oda_settings$iter,
     warmup = oda_settings$warmup, seed = oda_settings$seed
   )
@@ -70,7 +77,7 @@ f_oda_treatment_advocacy <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model_num <- brm(
-    bf(advocacy ~ advocacy_lag1 + (1 | gwcode)),
+    bf(advocacy ~ advocacy_lag1 + advocacy_lag2_cumsum + (1 | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_num,
@@ -80,7 +87,7 @@ f_oda_treatment_advocacy <- function(dat) {
   )
   
   model_denom <- brm(
-    bf(advocacy ~ advocacy_lag1 + total_oda_log_lag1 +
+    bf(advocacy ~ advocacy_lag1 + advocacy_lag2_cumsum + total_oda_log_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
@@ -102,7 +109,7 @@ f_oda_treatment_entry <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model_num <- brm(
-    bf(entry ~ entry_lag1 + (1 | gwcode)),
+    bf(entry ~ entry_lag1 + entry_lag2_cumsum + (1 | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_num,
@@ -112,7 +119,7 @@ f_oda_treatment_entry <- function(dat) {
   )
   
   model_denom <- brm(
-    bf(entry ~ entry_lag1 + total_oda_log_lag1 +
+    bf(entry ~ entry_lag1 + entry_lag2_cumsum + total_oda_log_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
@@ -134,7 +141,7 @@ f_oda_treatment_funding <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model_num <- brm(
-    bf(funding ~ funding_lag1 + (1 | gwcode)),
+    bf(funding ~ funding_lag1 + funding_lag2_cumsum + (1 | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_num,
@@ -144,7 +151,7 @@ f_oda_treatment_funding <- function(dat) {
   )
   
   model_denom <- brm(
-    bf(funding ~ funding_lag1 + total_oda_log_lag1 +
+    bf(funding ~ funding_lag1 + funding_lag2_cumsum + total_oda_log_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
@@ -164,17 +171,17 @@ f_oda_treatment_ccsi <- function(dat) {
   oda_settings <- oda_setup()
   
   model_num <- brm(
-    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + (1 | gwcode)),
+    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + v2xcs_ccsi_lag2_cumsum + (1 | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_num,
     control = list(adapt_delta = 0.99),
-    chains = oda_settings$chains, iter = oda_settings$iter,
+    chains = oda_settings$chains, iter = oda_settings$iter * 2,
     warmup = oda_settings$warmup, seed = oda_settings$seed
   )
   
   model_denom <- brm(
-    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + total_oda_log_lag1 +
+    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + v2xcs_ccsi_lag2_cumsum + total_oda_log_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
@@ -183,7 +190,7 @@ f_oda_treatment_ccsi <- function(dat) {
     family = gaussian(),
     prior = oda_settings$prior_denom,
     control = list(adapt_delta = 0.9),
-    chains = oda_settings$chains, iter = oda_settings$iter,
+    chains = oda_settings$chains, iter = oda_settings$iter * 2,
     warmup = oda_settings$warmup, seed = oda_settings$seed
   )
   
@@ -200,10 +207,14 @@ f_oda_outcome_total <- function(dat) {
   
   model <- brm(
     bf(total_oda_log_lead1 | weights(iptw) ~ barriers_total + 
-         (1 | gwcode) + (1 | year)),
+         barriers_total_lag1_cumsum +
+         year_small + (1 + year_small | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_out,
+    control = list(adapt_delta = 0.95),
+    threads = threading(2),
     chains = oda_settings$chains, iter = oda_settings$iter * 2,
     warmup = oda_settings$warmup, seed = oda_settings$seed
   )
@@ -217,8 +228,8 @@ f_oda_outcome_advocacy <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ advocacy + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ advocacy + advocacy_lag1_cumsum +
+         year_small + (1 + year_small | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_out,
@@ -235,8 +246,8 @@ f_oda_outcome_entry <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ entry + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ entry + entry_lag1_cumsum +
+         year_small + (1 + year_small | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_out,
@@ -253,8 +264,8 @@ f_oda_outcome_funding <- function(dat) {
   dat <- dat %>% filter(laws)
   
   model <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ funding + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ funding + funding_lag1_cumsum +
+         year_small + (1 + year_small | gwcode)),
     data = dat,
     family = gaussian(),
     prior = oda_settings$prior_out,
@@ -274,8 +285,8 @@ f_oda_outcome_ccsi <- function(dat) {
   dat_5000 <- dat %>% mutate(iptw = ifelse(iptw > 5000, 5000, iptw))
   
   model_100 <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum + 
+         year_small + (1 + year_small | gwcode)),
     data = dat_100,
     family = gaussian(),
     prior = oda_settings$prior_out,
@@ -286,8 +297,8 @@ f_oda_outcome_ccsi <- function(dat) {
   )
   
   model_500 <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum + 
+         year_small + (1 + year_small | gwcode)),
     data = dat_500,
     family = gaussian(),
     prior = oda_settings$prior_out,
@@ -298,8 +309,8 @@ f_oda_outcome_ccsi <- function(dat) {
   )
   
   model_1000 <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum + 
+         year_small + (1 + year_small | gwcode)),
     data = dat_1000,
     family = gaussian(),
     prior = oda_settings$prior_out,
@@ -310,8 +321,8 @@ f_oda_outcome_ccsi <- function(dat) {
   )
   
   model_5000 <- brm(
-    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + 
-         (1 | gwcode) + (1 | year)),
+    bf(total_oda_log_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum + 
+         year_small + (1 + year_small | gwcode)),
     data = dat_5000,
     family = gaussian(),
     prior = oda_settings$prior_out,
