@@ -1054,11 +1054,15 @@ lag_data <- function(df) {
                     v2xcs_ccsi_lag2, v2csreprss_lag2),
                   list(cumsum = ~cumsum_na(.)))) %>% 
     # Outcome variables
-    mutate(across(c(total_oda, total_oda_log, 
+    mutate(across(c(total_oda, total_oda_log, oda_us, oda_us_log,
+                    oda_contentious_low, oda_contentious_high,
                     prop_contentious, prop_contentious_logit,
+                    oda_us_ngo_dom, oda_us_ngo_int,
                     prop_ngo_dom, prop_ngo_foreign,
                     prop_ngo_dom_logit, prop_ngo_foreign_logit),
                   list(lead1 = ~lead(., n = 1)))) %>% 
+    # Shrink down year (years since 1989, so 1990 = 1; 2012 = 23)
+    mutate(year_small = year - 1989) %>% 
     ungroup()
   
   return(panel_lagged)
@@ -1066,6 +1070,11 @@ lag_data <- function(df) {
 
 trim_data <- function(df) {
   df %>% filter(year >= 1990 & year < 2014)
+}
+
+# AidData ends at 2013, so all the oda_lead variables in 2013 are 0
+trim_oecd <- function(df) {
+  df %>% filter(year != 2013)
 }
 
 winsorize_one <- function(df) {
