@@ -25,6 +25,9 @@ _targets.yaml
 # Output
 # (ignore for now)
 analysis/output/
+manuscript/*.pdf
+manuscript/*.docx
+manuscript/*.odt
 
 # Miscellaneous
 *.~lock.*
