@@ -9,7 +9,13 @@ bibstyle <- "bibstyle-apa"
 # Bayes-specific stuff
 suppressPackageStartupMessages(library(brms))
 options(mc.cores = 4,
-        brms.backend = "cmdstanr")
+        brms.backend = "cmdstanr",
+        brms.threads = 2)
+
+bayes_settings <- list(chains = 4, iter = 5000, warmup = 1000,
+                       seed = list(general = 6817, oda = 4045,
+                                   purpose = 3246, recipients = 7957))
+
 
 options(tidyverse.quiet = TRUE,
         dplyr.summarise.inform = FALSE)
@@ -34,7 +40,7 @@ options(contrasts = rep("contr.treatment", 2))
 # vs. my 16-core work laptop).
 
 # Pass these options to workers using options(worker_options)
-worker_options <- options()[c("mc.cores", "brms.backend",
+worker_options <- options()[c("mc.cores", "brms.backend", "brms.threads",
                               "contrasts", "tidyverse.quiet",
                               "dplyr.summarise.inform")]
 
