@@ -1,0 +1,537 @@
+---
+title: "H~2~: Effect of anti-NGO crackdown on aid contentiousness"
+author: "Suparna Chaudhry and Andrew Heiss"
+date: "`r format(Sys.time(), '%F')`"
+bibliography: "`r here::here('manuscript', 'bibliography.bib')`"
+csl: "`r here::here('manuscript', 'pandoc', 'csl', 'chicago-author-date.csl')`"
+link-citations: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.retina = 3,
+                      tidy.opts = list(width.cutoff = 120),  # For code
+                      options(width = 90),  # For output
+                      fig.asp = 0.618, fig.width = 7, 
+                      fig.align = "center", out.width = "85%")
+
+options(dplyr.summarise.inform = FALSE)
+```
+
+```{r load-libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(brms)
+library(tidybayes)
+library(bayesplot)
+library(fixest)
+library(broom)
+library(broom.mixed)
+library(modelsummary)
+library(patchwork)
+library(scales)
+library(latex2exp)
+library(kableExtra)
+library(here)
+
+color_scheme_set("viridisC")
+
+my_seed <- 1234
+set.seed(my_seed)
+
+withr::with_dir(here::here(), {
+  source(tar_read(plot_funs))
+  source(tar_read(misc_funs))
+  
+  # Data
+  df_country_aid <- tar_read(country_aid_final)
+  df_country_aid_laws <- filter(df_country_aid, laws)
+  
+  # Treatment models
+  tar_load(c(m_purpose_treatment_total, m_purpose_treatment_advocacy, 
+             m_purpose_treatment_entry, m_purpose_treatment_funding, 
+             m_purpose_treatment_ccsi))
+  
+  # IPTW data
+  tar_load(c(df_purpose_iptw_total, df_purpose_iptw_advocacy, 
+             df_purpose_iptw_entry, df_purpose_iptw_funding,
+             df_purpose_iptw_ccsi))
+  
+  # Outcome models
+  tar_load(c(m_purpose_outcome_total, m_purpose_outcome_advocacy, 
+             m_purpose_outcome_entry, m_purpose_outcome_funding,
+             m_purpose_outcome_ccsi))
+  
+  # Results tables
+  # tar_load(c(models_tbl_h2_treatment_num, models_tbl_h2_treatment_denom))
+  # tar_load(c(models_tbl_h2_outcome_dejure, models_tbl_h2_outcome_defacto))
+})
+```
+
+## Weight models
+
+- Numerator is lagged treatment + non-varying confounders
+- Denominator is lagged treatment + lagged outcome + time-varying confounders + non-varying confounders
+
+$$
+sw = \prod^t_{t = 1} \frac{\phi(T_{it} | T_{i, t-1}, C_i)}{\phi(T_{it} | T_{i, t-1}, D_{i, t-1}, C_i)}
+$$
+
+### Priors for weight models
+
+We use [generic weakly informative priors](https://mc-stan.org/users/documentation/case-studies/weakly_informative_shapes.html) for our model parameters:
+
+- Intercept: $\mathcal{N} (0, 10)$
+- Coefficients: $\mathcal{N} (0, 2.5)$
+- Sigma: $\operatorname{Cauchy} (0, 1)$
+
+```{r plot-weight-priors, fig.height=2, fig.width=6, fig.asp=NULL}
+pri_int <- ggplot() +
+  stat_function(fun = dnorm, args = list(mean = 0, sd = 10),
+                geom = "area", fill = "grey80", color = "black") +
+  labs(x = TeX("\\textbf{Intercept (β_0)}")) +
+  annotate(geom = "label", x = 0, y = 0.01, label = "N(0, 10)", size = pts(9)) +
+  xlim(-40, 40) +
+  theme_donors(prior = TRUE)
+
+pri_coef <- ggplot() +
+  stat_function(fun = dnorm, args = list(mean = 0, sd = 2.5),
+                geom = "area", fill = "grey80", color = "black") +
+  labs(x = TeX("\\textbf{Coefficients (β_x)}")) +
+  annotate(geom = "label", x = 0, y = 0.04, label = "N(0, 3)", size = pts(9)) +
+  xlim(-10, 10) +
+  theme_donors(prior = TRUE)
+
+pri_sigma <- ggplot() +
+  stat_function(fun = dcauchy, args = list(location = 0, scale = 1),
+                geom = "area", fill = "grey80", color = "black") +
+  labs(x = "σ") +
+  annotate(geom = "label", x = 5, y = 0.08, label = "Cauchy(0, 1)", size = pts(9)) +
+  xlim(0, 10) +
+  theme_donors(prior = TRUE)
+
+(pri_int + pri_coef + pri_sigma)
+```
+
+### Check weight models
+
+We check one of the denominator models for convergence and mixing and fit (not the numerator, since those models are the same as the ones in H1).
+
+```{r h2-check-denominator}
+pp_check(m_purpose_treatment_total$model_denom, type = "dens_overlay", nsamples = 10) +
+  theme_donors()
+
+m_purpose_treatment_total$model_denom %>% 
+  posterior_samples(add_chain = TRUE) %>% 
+  select(-starts_with("r_gwcode"), -starts_with("z_"), -lp__, -iter) %>% 
+  mcmc_trace() +
+  theme_donors() +
+  theme(legend.position = "right")
+```
+
+### Check weights {.tabset}
+
+IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. 
+
+#### Total ODA
+
+Eh, some of these are high, but the mean and median are fine.
+
+```{r iptws-total-oda}
+summary(df_purpose_iptw_total$iptw)
+
+df_purpose_iptw_total %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(binwidth = 0.5, boundary = 0) +
+  theme_donors()
+```
+
+#### Advocacy
+
+Great.
+
+```{r iptws-advocacy}
+summary(df_purpose_iptw_advocacy$iptw)
+
+df_purpose_iptw_advocacy %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(binwidth = 1, boundary = 0) +
+  theme_donors()
+```
+
+#### Entry
+
+Good.
+
+```{r iptws-entry}
+summary(df_purpose_iptw_entry$iptw)
+
+df_purpose_iptw_entry %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(binwidth = 0.5, boundary = 0) +
+  theme_donors()
+```
+
+#### Funding
+
+Some high values again, but only a handful, and the median and mean are great.
+
+```{r iptws-funding}
+summary(df_purpose_iptw_funding$iptw)
+
+df_purpose_iptw_funding %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(binwidth = 1, boundary = 0) +
+  theme_donors()
+```
+
+#### Core civil society index
+
+hahaha oh no:
+
+```{r iptws-ccsi-summary}
+summary(df_purpose_iptw_ccsi$iptw)
+```
+
+We truncate at four different thresholds: 100, 500, 1,000, and 5,000:
+
+```{r iptws-ccsi}
+plot_iptw_ccsi <- bind_rows(
+  df_purpose_iptw_ccsi %>% mutate(threshold = 100, iptw = ifelse(iptw > 100, 100, iptw)),
+  df_purpose_iptw_ccsi %>% mutate(threshold = 500, iptw = ifelse(iptw > 500, 500, iptw)),
+  df_purpose_iptw_ccsi %>% mutate(threshold = 1000, iptw = ifelse(iptw > 1000, 1000, iptw)),
+  df_purpose_iptw_ccsi %>% mutate(threshold = 5000, iptw = ifelse(iptw > 5000, 5000, iptw))
+) %>% 
+  mutate(threshold = paste0("Truncated at ", comma(threshold)),
+         threshold = fct_inorder(threshold))
+
+plot_iptw_ccsi %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(bins = 50, boundary = 0) +
+  facet_wrap(vars(threshold), scales = "free_x") +
+  theme_donors()
+```
+
+### Results {.tabset}
+
+These are less important since we just use these treatment models to generate weights *and* because interpreting each coefficient when trying to isolate casual effects is unimportant and [a "nuisance"](https://arxiv.org/abs/2005.10314). But here are the results anyway:
+
+#### Numerator models
+
+```{r tbl-h2-num, eval=FALSE}
+# model_names <- paste0("(", 1:length(models_tbl_h2_treatment_num), ")")
+model_names <- 1:length(models_tbl_h2_treatment_num)
+names(models_tbl_h2_treatment_num) <- model_names
+
+treatment_names <- c("Treatment", "Total barriers (t)", "Barriers to advocacy (t)", 
+                     "Barriers to entry (t)", "Barriers to funding (t)", "CCSI (t)")
+treatment_rows <- as.data.frame(t(treatment_names))
+attr(treatment_rows, "position") <- 1
+
+coef_list_num <- list(
+  "b_barriers_total_lag1" = "Treatment (t − 1)",
+  "b_advocacy_lag1" = "Treatment (t − 1)",
+  "b_entry_lag1" = "Treatment (t − 1)",
+  "b_funding_lag1" = "Treatment (t − 1)",
+  "b_v2xcs_ccsi_lag1" = "Treatment (t − 1)",
+  "b_Intercept" = "Intercept"
+)
+
+modelsummary(models_tbl_h2_treatment_num,
+             statistic = "[{conf.low}, {conf.high}]",
+             coef_map = coef_list_num,
+             add_rows = treatment_rows,
+             gof_omit = "ELPD",
+             escape = FALSE,
+             notes = list("Posterior means; 95% credible intervals in brackets"))
+```
+
+#### Denominator models
+
+```{r tbl-h2-denom, eval=FALSE}
+# model_names <- paste0("(", 1:length(models_tbl_h2_treatment_denom), ")")
+model_names <- 1:length(models_tbl_h2_treatment_denom)
+names(models_tbl_h2_treatment_denom) <- model_names
+
+treatment_names <- c("Treatment", "Total barriers (t)", "Barriers to advocacy (t)", 
+                     "Barriers to entry (t)", "Barriers to funding (t)", "CCSI (t)")
+treatment_rows <- as.data.frame(t(treatment_names))
+attr(treatment_rows, "position") <- 1
+
+coef_list_denom <- list(
+  "b_barriers_total_lag1" = "Treatment (t − 1)",
+  "b_advocacy_lag1" = "Treatment (t − 1)",
+  "b_entry_lag1" = "Treatment (t − 1)",
+  "b_funding_lag1" = "Treatment (t − 1)",
+  "b_v2xcs_ccsi_lag1" = "Treatment (t − 1)",
+  "b_v2x_polyarchy" = "Polyarchy",
+  "b_v2x_corr" = "Corruption index",
+  "b_v2x_rule" = "Rule of law index",
+  "b_v2x_civlib" = "Civil liberties index",
+  "b_v2x_clphy" = "Physical violence index",
+  "b_v2x_clpriv" = "Private civil liberties index",
+  "b_gdpcap_log" = "Log GDP/capita",
+  "b_un_trade_pct_gdp" = "Percent of GDP from trade",
+  "b_v2peedueq" = "Educational equality index",
+  "b_v2pehealth" = "Health equality index",
+  "b_e_peinfmor" = "Infant mortality rate",
+  "b_internal_conflict_past_5TRUE" = "Internal conflict in past 5 years",
+  "b_natural_dis_count" = "Count of natural disasters",
+  "b_Intercept" = "Intercept"
+)
+
+modelsummary(models_tbl_h2_treatment_denom,
+             statistic = "[{conf.low}, {conf.high}]",
+             coef_map = coef_list_denom,
+             add_rows = treatment_rows,
+             gof_omit = "ELPD",
+             escape = FALSE,
+             notes = list("Posterior means; 95% credible intervals in brackets"))
+```
+
+
+## Outcome models
+
+### Modeling choice
+
+Our dependent variable for this hypothesis is the percentage of ODA allocated for contentious purposes, again leaded by one year. We classify contentious aid as any project focused on government and civil society (DAC codes 150 and 151) or conflict prevention and resolution, peace and security (DAC code 152).
+
+Working with proportion data, however, poses interesting mathematical and methodological challenges, since the range of possible outcomes is limited to a value between 0 and 1. Treating proportion variables in a mixed model is technically possible, but it yields predictions that go beyond the allowable range of values (1.13, -0.5, etc.). Treating the proportion as a binomial variable is also possible and is indeed [one of the ways to use the `glm()` function](http://stackoverflow.com/a/9111904/120898) in R. However, this entails considering the proportion as a ratio of success and failures. In this case, treating a dollar of contentious aid as a success feels off, especially since aid amounts aren't independent events—it's not like each dollar of aid goes through a probabalistic process like a coin flip. 
+
+Another solution is to use [beta regression](https://cran.r-project.org/package=betareg), which [constrains the outcome variable to values between 0 and 1](http://www.theanalysisfactor.com/zero-one-inflated-beta-models-for-proportion-data/), but unfortunately does not allow for values of exactly 0 or 1. Zero-and-one inflated beta regression models, however, make adjustments for this and model the probability of being 0, being 1, and being somewhere in the middle using different processes. Matti Vuorre has [an excellent overview of ZOIB models here](https://vuorre.netlify.app/post/2019/02/18/analyze-analog-scale-ratings-with-zero-one-inflated-beta-models/).
+
+However, as we found with [our hurdling dilemma with H~1~](03_h1-total-aid.html#Modeling_choices), while it's possible to fit a zero-inflated model (or even zero-one-inflated model), it would require separate model specifications for different parts (the zero part, the one part, and the non-zero-one parts), leaving us with three different pseudo-treatment effects, only one of which (the non-zero-one part) weighted with the IPTW, and thus adjusted with do-calculus logic.
+
+[One recommendation by Ben Bolker](https://stat.ethz.ch/pipermail/r-sig-mixed-models/2011q1/015422.html), the maintainer of [`lme4`](https://cran.r-project.org/package=lme4), is to use a logit transformation of the dependent variable in `lmer()` models. This seems to be [standard practice in political science research](https://acrowinghen.com/2014/04/24/interpreting-coefficients-from-a-logit-linear-model-with-a-proportional-dependent-variable/), too. Logit transformations still can't handle values of exactly 0 or 1, though, but it's possible to [winsorize](https://en.wikipedia.org/wiki/Winsorizing) those values by adding or subtracting 0.001 to the extremes. [Stata has a guide](https://www.stata.com/support/faqs/statistics/logit-transformation/) about how to do this too.
+
+We thus use logit-linear models of the ratio of contentious aid to non-contentious aid, like this: 
+
+$$\log \left( \frac{\text{Contentious aid}}{\text{Noncontentious aid}} \right)_{i, t+1}$$
+
+That means that we're comparing the ratio of contentious aid to non-contentious aid rather than the direct percent of contentious aid, and it makes for some acrobatic interpretations, but at least the results are interpretable.
+
+### Interpreting outcome models
+
+TODO
+
+
+### Priors for outcome models
+
+Here's the full specification for the models and all priors:
+
+$$
+\begin{aligned}
+\log \left(\frac{\text{Contentious aid}}{\text{Noncontentious aid}} \right)_{i, t} &\sim \text{IPTW}_{i, t-1} \times \mathcal{N} (\mu_{i, t}, \sigma_m) & \text{[likelihood]}\\
+\mu_{i, t} &\sim \alpha_{\text{country}[i]} + \delta_{\text{year}[k]} + \beta\ \text{Law}_{i, t-1} & \text{[marginal structural model]}\\
+\alpha_j &\sim \mathcal{N} (\bar{\alpha}, \sigma_{\alpha}) \text{, for } j \text{ in } 1 .. J & \text{[country-specific intercepts]} \\
+\delta_j &\sim \mathcal{N} (0, \sigma_{\delta}) \text{, for } j \text{ in } 1 .. J & \text{[year-specific intercepts]} \\
+\ \\
+\bar{\alpha} &\sim \mathcal{N} (0, 20) & \text{[prior population intercept]} \\
+\beta &\sim \mathcal{N} (0, 3) & \text{[prior population effects]} \\
+\sigma_m, \sigma_{\alpha}, \sigma_{\delta} &\sim \operatorname{Cauchy}(0, 1) & \text{[prior sd for errors]}
+\end{aligned}
+$$
+
+### Check outcome models
+
+The traceplots all look fine. Here's one as an example:
+
+```{r h2-check-outcome}
+m_purpose_outcome_total %>% 
+  posterior_samples(add_chain = TRUE) %>% 
+  select(-starts_with("r_gwcode"), -starts_with("z_"), -starts_with("r_year"), -lp__, -iter) %>% 
+  mcmc_trace() +
+  theme_donors()
+```
+
+### Results {.tabset}
+
+#### ATE plots
+
+```{r h2-plots-dejure, fig.width=8, fig.height=5, fig.asp=NULL}
+coefs_nice <- tribble(
+  ~`.variable`, ~var_nice,
+  "b_barriers_total", "Additional law, t - 1",
+  "b_advocacy", "Additional advocacy law, t - 1",
+  "b_entry", "Additional entry law, t - 1",
+  "b_funding", "Additional funding law, t - 1",
+  "b_v2xcs_ccsi", "Core civil society index, t - 1"
+) %>% 
+  mutate(var_nice = fct_inorder(var_nice))
+
+plot_total_data <- gather_draws(m_purpose_outcome_total, b_barriers_total)
+plot_advocacy_data <- gather_draws(m_purpose_outcome_advocacy, b_advocacy)
+plot_entry_data <- gather_draws(m_purpose_outcome_entry, b_entry)
+plot_funding_data <- gather_draws(m_purpose_outcome_funding, b_funding) 
+
+plot_purpose_coefs <- bind_rows(plot_total_data, plot_advocacy_data,
+                                plot_entry_data, plot_funding_data) %>% 
+  left_join(coefs_nice, by = ".variable") %>% 
+  mutate(.value = exp(.value))
+
+rope_sd <- exp(sd(df_purpose_iptw_total$prop_contentious_logit_lead1))
+
+plot_rope <- tibble(xmin = 1 + (-0.05 * rope_sd), 
+                    xmax = 1 + (0.05 * rope_sd))
+
+ggplot(plot_purpose_coefs, aes(x = .value, y = fct_rev(var_nice), fill = var_nice)) +
+  geom_vline(xintercept = 1) +
+  geom_rect(data = plot_rope, aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+            fill = "#FFDC00", alpha = 0.3, inherit.aes = FALSE) +
+  annotate(geom = "label", x = 1, y = 0.65, 
+           label = "Region of practical equivalence\n(± 0.05 × SD y)",
+           size = pts(8)) +
+  stat_halfeye(.width = c(0.8, 0.95), alpha = 0.8, point_interval = "median_hdi") +
+  guides(fill = FALSE) +
+  scale_y_discrete() +
+  scale_fill_manual(values = c("#FF851B", "#85144b", "#3D9970", "#001f3f")) +
+  labs(x = "Percent change in ratio of contentious aid in following year", y = NULL,
+       caption = "Point shows posterior median; lines show 80% and 95%\ncredible highest-density-interval") +
+  theme_donors()
+```
+
+lol what even
+
+```{r h2-plots-defacto}
+plot_ccsi_coefs <- m_purpose_outcome_ccsi %>% 
+  map_dfr(~gather_draws(., b_v2xcs_ccsi), .id = "model") %>% 
+  mutate(.value = .value / 10) %>% 
+  mutate(model = comma(as.numeric(str_remove(model, "model_")))) %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  left_join(coefs_nice, by = ".variable")
+
+ggplot(plot_ccsi_coefs, aes(x = .value, y = fct_rev(model), fill = model)) +
+  stat_halfeye(.width = c(0.8, 0.95), point_interval = "median_hdi",
+               position = position_dodge(width = 0.5)) +
+  guides(fill = FALSE) +
+  labs(x = "Coefficient", y = "IPTW truncation point") +
+  theme_donors()
+```
+
+#### Tables
+
+```{r tbl-h2-dejure, eval=FALSE}
+# model_names <- paste0("(", 1:length(models_tbl_h2_outcome_dejure), ")")
+model_names <- 1:length(models_tbl_h2_outcome_dejure)
+names(models_tbl_h2_outcome_dejure) <- model_names
+
+treatment_names <- c("Treatment", "Total barriers (t)", "Barriers to advocacy (t)", 
+                     "Barriers to entry (t)", "Barriers to funding (t)")
+treatment_rows <- as.data.frame(t(treatment_names))
+attr(treatment_rows, "position") <- 1
+
+coef_list_outcome <- list(
+  "b_barriers_total" = "Treatment (t)",
+  "b_advocacy" = "Treatment (t)",
+  "b_entry" = "Treatment (t)",
+  "b_funding" = "Treatment (t)",
+  "b_v2xcs_ccsi" = "Core civil society index (t)",
+  "b_Intercept" = "Intercept",
+  "sd_gwcode__Intercept" = "σ country intercepts",
+  "sd_year__Intercept" = "σ year intercepts"
+)
+
+modelsummary(models_tbl_h2_outcome_dejure,
+             statistic = "[{conf.low}, {conf.high}]",
+             coef_map = coef_list_outcome,
+             add_rows = treatment_rows,
+             gof_omit = "ELPD",
+             escape = FALSE,
+             notes = list("Posterior means; 95% credible intervals in brackets")) %>% 
+  add_header_above(c(" " = 1, "Outcome: Logit prop contentious (t + 1)" = 4))
+```
+
+TODO: This is a mess
+
+```{r tbl-h2-defacto, eval=FALSE}
+truncation_thresholds <- names(models_tbl_h2_outcome_defacto) %>% 
+  str_extract("_\\d+") %>% 
+  str_remove("_") %>% 
+  as.numeric() %>% 
+  comma()
+
+truncation_names <- c("IPTW truncation threshold", truncation_thresholds)
+truncation_rows <- as.data.frame(t(truncation_names))
+attr(truncation_rows, "position") <- 1
+
+# model_names <- paste0("(", 1:length(models_tbl_h2_outcome_defacto), ")")
+model_names <- 1:length(models_tbl_h2_outcome_defacto)
+names(models_tbl_h2_outcome_defacto) <- model_names
+
+modelsummary(models_tbl_h2_outcome_defacto,
+             statistic = "[{conf.low}, {conf.high}]",
+             coef_map = coef_list_outcome,
+             add_rows = truncation_rows,
+             gof_omit = "ELPD",
+             escape = FALSE,
+             notes = list("Posterior means; 95% credible intervals in brackets")) %>% 
+  add_header_above(c(" " = 1, "Outcome: Outcome: Logit prop contentious (t + 1)" = 4))
+```
+
+
+#### Marginal effects
+
+```{r h2-conditional-effects}
+# brms::conditional_effects() can create spaghetti plots (single lines per
+# sample), but it stores them in an attribute slot named "spaghetti", which is
+# tricky to extract data from. This pulls the data frame from the attribute
+make_spaghetti <- function(model) {
+  raw_effects <- conditional_effects(model, spaghetti = TRUE, nsamples = 100)[[1]]
+  spaghetti_data <- attr(raw_effects, "spaghetti")
+  return(spaghetti_data)
+}
+
+inv_logit <- function(f, a) {
+  a <- (1 - 2 * a)
+  (a * (1 + exp(f)) + (exp(f) - 1)) / (2 * a * (1 + exp(f)))
+}
+
+make_spaghetti(m_purpose_outcome_total) %>% 
+  mutate(estimate__ = inv_logit(estimate__, a = 0.001)) %>% 
+  ggplot(aes(x = effect1__, y = estimate__, group = sample__)) +
+  geom_line(size = 0.25, color = "#FF4136") +
+  scale_x_continuous(breaks = 0:9) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  guides(color = FALSE) +
+  labs(x = "Count of total legal barriers",
+       y = "Predicted proportion of\ncontentious aid in following year") +
+  theme_donors() +
+  theme(panel.grid.major.x = element_blank())
+
+make_spaghetti(m_purpose_outcome_advocacy) %>% 
+  mutate(estimate__ = inv_logit(estimate__, a = 0.001)) %>% 
+  ggplot(aes(x = effect1__, y = estimate__, group = sample__)) +
+  geom_line(size = 0.25, color = "#FF4136") +
+  scale_x_continuous(breaks = 0:2) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  guides(color = FALSE) +
+  labs(x = "Count of barriers to advocacy",
+       y = "Predicted proportion of\ncontentious aid in following year") +
+  theme_donors() +
+  theme(panel.grid.major.x = element_blank())
+
+make_spaghetti(m_purpose_outcome_entry) %>% 
+  mutate(estimate__ = inv_logit(estimate__, a = 0.001)) %>% 
+  ggplot(aes(x = effect1__, y = estimate__, group = sample__)) +
+  geom_line(size = 0.25, color = "#FF4136") +
+  scale_x_continuous(breaks = 0:3) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  guides(color = FALSE) +
+  labs(x = "Count of barriers to entry",
+       y = "Predicted proportion of\ncontentious aid in following year") +
+  theme_donors() +
+  theme(panel.grid.major.x = element_blank())
+
+make_spaghetti(m_purpose_outcome_funding) %>% 
+  mutate(estimate__ = inv_logit(estimate__, a = 0.001)) %>% 
+  ggplot(aes(x = effect1__, y = estimate__, group = sample__)) +
+  geom_line(size = 0.25, color = "#FF4136") +
+  scale_x_continuous(breaks = 0:5) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  guides(color = FALSE) +
+  labs(x = "Count of barriers to funding",
+       y = "Predicted proportion of\ncontentious aid in following year") +
+  theme_donors() +
+  theme(panel.grid.major.x = element_blank())
+```
