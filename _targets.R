@@ -2,6 +2,14 @@ library(targets)
 library(tarchetypes)
 library(tibble)
 
+# Set the _targets store so that scripts in subdirectories can access targets
+# without using withr::with_dir() (see https://github.com/ropensci/targets/discussions/885)
+#
+# This hardcodes the absolute path in _targets.yaml, so to make this more
+# portable, we rewrite it every time this pipeline is run (and we don't track
+# _targets.yaml with git)
+tar_config_set(store = here::here('_targets'))
+
 # General variables
 csl <- "pandoc/csl/apa.csl"
 bibstyle <- "bibstyle-apa"
