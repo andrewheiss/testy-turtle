@@ -1,0 +1,776 @@
+---
+title: "Working with tricky outcomes with lots of zeros"
+format:
+  html:
+    toc-depth: 4
+---
+
+```{r setup, include=FALSE}
+options(digits = 3, width = 120,
+        dplyr.summarise.inform = FALSE,
+        knitr.kable.NA = "")
+```
+
+```{r libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(brms)
+library(tidybayes)
+library(scales)
+library(patchwork)
+library(ggtext)
+library(ggh4x)
+library(kableExtra)
+library(broom.mixed)
+library(marginaleffects)
+
+# Load stuff from targets
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+
+tar_load(c(m_oda_prelim_time_only_total, m_purpose_prelim_time_only_total))
+
+df_country_aid <- tar_read(country_aid_final)
+df_country_aid_laws <- filter(df_country_aid, laws)
+
+# Tell bayesplot to use the sunset palette for things like pp_check()
+bayesplot::color_scheme_set(clrs$Sunset[2:7])
+```
+
+# The problem with zeros
+
+All of our outcome variables have a substantial and nontrivial number of zeros in them:
+
+```{r}
+bind_rows(
+  `Total ODA (H1)` = count(df_country_aid_laws, is_zero = total_oda == 0),
+  `Proportion of contentious aid (H2)` = count(df_country_aid_laws, is_zero = prop_contentious == 0),
+  `Proportion of aid to domestic NGOs (H3)` = count(df_country_aid_laws, is_zero = prop_ngo_dom == 0),
+  `Proportion of aid to foreign NGOs (H3)` = count(df_country_aid_laws, is_zero = prop_ngo_foreign == 0),
+  .id = "Outcome"
+) %>% 
+  group_by(Outcome) %>% 
+  mutate(`Number of 0s` = glue::glue("{n[2]} / {sum(n)}")) %>% 
+  mutate(`Proportion of 0s` = label_percent(accuracy = 0.1)(n / sum(n))) %>% 
+  ungroup() %>% 
+  filter(is_zero) %>% select(-is_zero, -n) %>% 
+  kbl(align = c("l", "c", "c")) %>% 
+  kable_styling(htmltable_class = "table table-sm",
+                full_width = FALSE)
+```
+
+Here's what that looks like with foreign aid:
+
+```{r fig.width=8, fig.height=4}
+#| fig-width: 8
+#| fig-height: 4
+#| out-width: 90%
+#| column: page-inset-right
+plot_dist_unlogged <- df_country_aid_laws  %>%
+  mutate(is_zero = total_oda == 0) %>% 
+  mutate(total_oda = ifelse(is_zero, -0.1, total_oda))  %>%  
+  ggplot(aes(x = total_oda)) +
+  geom_histogram(aes(fill = is_zero), binwidth = 2e9, 
+                 linewidth = 0.25, boundary = 0, color = "white") +
+  geom_vline(xintercept = 0) + 
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_y_continuous(labels = label_comma()) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]), 
+                    guide = guide_legend(reverse = TRUE)) +
+  labs(x = "Total ODA", y = "Count", fill = "Is zero?",
+       subtitle = "Nice and exponentially shaped,\nwith a bunch of zeros") +
+  theme_donors() +
+  theme(legend.position = "bottom")
+
+plot_dist_logged <- df_country_aid_laws %>%
+  mutate(is_zero = total_oda_log == 0) %>% 
+  mutate(total_oda_log = ifelse(is_zero, -0.1, total_oda_log))  %>%  
+  ggplot(aes(x = total_oda_log)) +
+  geom_histogram(aes(fill = is_zero), binwidth = 1, 
+                 linewidth = 0.25, boundary = 0, color = "white") +
+  geom_vline(xintercept = 0) +
+  scale_x_continuous(labels = label_math(e^.x)) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]), 
+                    guide = guide_legend(reverse = TRUE)) +
+  labs(x = "Total ODA", y = "Count", fill = "Is zero?",
+       subtitle = "Nice and normally shaped, with a bunch of zeros;\nit's hard to interpret intuitively though") +
+  theme_donors() +
+  theme(legend.position = "bottom")
+
+(plot_dist_unlogged | plot_dist_logged) +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "ODA, original vs. logged",
+                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                                legend.position = "bottom"))
+```
+
+And with the proportion variables:
+
+
+# Hurdle vs. zero-inflated models
+
+These zeros pose a whole host of tricky methodological issues. We could be like economists and just throw OLS at all these, or do what we've done in past versions of this paper and just use OLS on logged aid and fractional logit stuff for the proportions, but we can do better—we can model the zeros directly!
+
+In the course of working on this paper, I've written a couple complete guides (for future me!) about two different approaches for doing this:
+
+- [Guide for hurdle models](https://www.andrewheiss.com/blog/2022/05/09/hurdle-lognormal-gaussian-brms/) (for total ODA)
+- [Guide for zero-inflated models](https://www.andrewheiss.com/blog/2021/11/08/beta-regression-guide/) (for proportions)
+
+There's actually a subtle difference between hurdle models and zero-inflated models, and [this Stack Exchange answer explains the distinction exceptionally well](https://stats.stackexchange.com/questions/81457/what-is-the-difference-between-zero-inflated-and-hurdle-models).
+
+Put simply, in hurdle models there's only one way to get a zero in the outcome; in zero-inflated models there are two ways to get a zero in the outcome. Both models use a two-step process:
+
+1. In the first stage for both types of models, we model if an outcome is either zero or not zero, or if the non-zero data generating process is on or off. It has a probability $\pi$ of being off (or 0) and a probability $1 - \pi$ of being on (or 1)
+
+2. In the second stage, the two models diverge a little
+
+   a. For hurdle models, there is only one way to get a zero, which is handled with the $\pi$ part in the first stage. Predicted values of $y$ in this second stage cannot be zero, so the distribution of $y$ is truncated at $y > 0$. This is done with some fancy math that incorporates the probability of being not zero ($1 - \pi$) and the regular distribution family (Poisson, lognormal, whatever):
+
+      $$
+      \begin{aligned}
+      & \textbf{Hurdle log-normal observation model} \\
+      y &\sim \operatorname{Hurdle\,log-normal}(\mu, \sigma, \pi) \quad \text{or alternatively,}\\
+      y &\sim \begin{cases}
+      0 & \text{with probability } \pi \\
+      \operatorname{Log-normal}(\mu, \sigma) & \text{with probability } 1 - \pi
+      \end{cases} \\[4pt]
+      \operatorname{logit}(\pi) &= \gamma_0 + \gamma_1 x_1 \\
+      \log(\mu) &= \beta_0 + \beta_1 x_1 \\
+      \sigma &\sim \operatorname{Exponential}(1) \\[10pt]
+      & \textbf{Likelihood of zero} \\
+      \Pr(0 \mid \pi) &= 
+      \underbracket[0.25pt]{\Pr(\text{No $y$} \mid \pi)}_{\substack{\text{Probability}\\ \text{of no $y$}}}\ =\ \pi \\[10pt]
+      & \textbf{Hurdle log-normal likelihood} \\
+      \Pr(y \mid \pi, \mu, \sigma) &=
+      \begin{dcases}
+      \pi & \text{if } y = 0 \\[4pt]
+      \underbracket[0.25pt]{\frac{(1 - \pi) \times \operatorname{Log-normal}(y \mid \mu, \sigma)}
+      {1 - \operatorname{Log-normal}(0 \mid \mu, \sigma)}}_{\text{Will only predict $y > 0$}} & \text{if } y > 0
+      \end{dcases}
+      \end{aligned}
+      $$
+
+   b. For zero-inflated models, there are two ways to get a zero. For example, in [section 12.2 in *Statistical Rethinking*](https://bookdown.org/content/4857/monsters-and-mixtures.html#example-zero-inflated-poisson.), @McElreath:2020 gives an example of monks who can either (1) drink and do no work, or (2) work and transcribe some number of manuscripts. There's a two-stage process for getting possible 0s here. A monk could transcribe 0 manuscripts because of the $\pi$ on/off process in the first stage (e.g., they decide to drink and not even attempt to copy any manuscripts). Alternatively, the monk could be "on" in the first stage (e.g., they decide to not drink and to work instead), but then they don't end up transcribing anything (e.g., the final count is 0 because they were slow, lazy, had a difficult manuscript, or whatever).
+   
+      So we have to incorporate both avenues for getting a 0 into the likelihood for zero. Predicted values of $y$ in this stage *can* be zero, so unlike hurdle models, this isn't truncated or anything. We use some distribution family (Poisson, negative binomial, beta, whatever) at this stage and generate predictions where $y \geq 0$.
+   
+      SUPER WEIRDLY THOUGH, despite its name, zero-inflated Beta regression [is actually kinda sorta a hurdle model and not a zero-inflated model](https://stats.stackexchange.com/a/81854/3025) because $\operatorname{Beta}(0 \mid \mu, \phi)$ isn't normally allowed since the Beta distribution typically only covers $0 < y < 1$ or (0, 1) rather than [0, 1]. That is, according to this definition of hurdling vs. zero-inflating, in zero-inflated models zero is still a possible outcome after moving past the first zero/not zero stage, but the Beta distribution typically doesn't allow for zeros. ::huge-shrug::
+   
+      $$
+      \begin{aligned}
+      & \textbf{Zero-inflated Beta observation model} \\
+      y &\sim \operatorname{Zero-inflated\, Beta}(\pi, \mu, \phi) \quad \text{or alternatively,}\\
+      y &\sim \begin{cases}
+      0 & \text{with probability } \pi + [(1 - \pi) \times \operatorname{Beta}(0 \mid \mu, \phi)] \\
+      \operatorname{Beta}(\mu, \phi) & \text{with probability } (1 - \pi) \times \operatorname{Beta}(y \mid \mu, \phi)
+      \end{cases} \\[4pt]
+      \operatorname{logit}(\pi) &= \gamma_0 + \gamma_1 x_1 \\
+      \operatorname{logit}(\mu) &= \beta_0 + \beta_1 x_1 \\
+      \phi &\sim \operatorname{Exponential}(1) \\[10pt]
+      & \textbf{Likelihood of zero} \\
+      \Pr(0 \mid \pi, \mu, \phi) &= 
+      \underbracket[0.25pt]{\Pr(\text{No $y$} \mid \pi)}_{\substack{\text{Probability of} \\ \text{no $y$ at all}}} 
+      \ \overbracket[0.25pt]{+}^{\text{or}}\ 
+      \underbracket[0.25pt]{\left[\Pr(\text{Yes $y$} \mid \pi) \times \Pr(0 \mid \mu, \phi)\right]}_{\substack{\text{Probability of yes $y$,} \\ \text{but it happens to be 0}}} \\
+      &= \pi + [(1 - \pi) \times \operatorname{Beta}(0 \mid \mu, \phi)] \\[10pt]
+      & \textbf{Zero-inflated Beta likelihood} \\
+      \Pr(y \mid \pi, \mu, \phi) &=
+      \begin{cases}
+      \pi + [(1 - \pi) \times \operatorname{Beta}(0 \mid \mu, \phi)] & \text{if } y = 0 \\[4pt]
+      \underbracket[0.25pt]{(1 - \pi) \times \operatorname{Beta}(y \mid \mu, \phi)}_{\text{Will predict $y \geq 0$}} & \text{if } y > 0
+      \end{cases}
+      \end{aligned}
+      $$
+
+With all that… whatever. This difference doesn't super matter for us here. We'll use both of these kinds of families to model our zero-heavy outcomes.
+
+::: {.callout-tip}
+### More complete documentation
+
+Figuring out all this model and likelihood stuff for hurdle and zero-inflated regression has been really tricky and nuanced and I'm still not 100% sure this is 100% accurate. But thanks to some fantastic help from people on Twitter and Mastodon, I got this far! Here are some of the resources I used for all this:
+
+- [Aki Vehtari's Mastodon thread](https://bayes.club/@avehtari/109382966876733736) on the differences between likelihoods and distributions, and models. He proposes calling the whole complex formal hierarchical model a "statistical model" and calling the part that invovles observations an "observation model". He also distinguishes between (1) tilde notation ($y \sim \mathcal{N}(\mu, \sigma)$), which is read as "y is distributed as normal(mu sigma)," and which refers to the observation model, and (2) likelihood notation ($\Pr(y \mid \theta)$), which can either be a distribution or a likelihood, resulting in all sorts of confusion.
+
+- The [brms vignette on zero-inflated and hurdle models](https://cran.r-project.org/web/packages/brms/vignettes/brms_families.html#zero-inflated-and-hurdle-models) defines the likelihood of both kinds of models in general mathy terms, where $z$ is the zero-inflation probability and $f(\cdot)$ is the family for the second stage:
+
+  - Zero-inflated density:
+
+    $$
+    f_z(y) = 
+    \begin{cases}
+    z + (1 - z) f(0) & \text{if } y = 0 \\
+    (1 - z) f(y) & \text{if } y > 0
+    \end{cases}
+    $$
+  
+  - Hurdle density:
+
+    $$
+    f_z(y) = \begin{cases}
+    z & \text{if } y = 0 \\
+    (1 - z) f(y) / (1 - f(0)) & \text{if } y > 0
+    \end{cases}
+    $$
+
+- [The Stan documentation for zero inflation](https://mc-stan.org/docs/stan-users-guide/zero-inflated.html) shows the same thing, with slightly different notation. It also shows the actual Stan code necessary for these kinds of models.
+
+- Sections 12.4.1 and 12.4.2 in @Frees:2009 ([copy here](https://finance.nankai.edu.cn/_upload/article/files/c6/44/73f40f574e069868d74d52345ece/69e1f4b9-4aa4-48d2-8c63-3e205e73c749.pdf)) provide a similar overview and slightly different notation for both kinds of models.
+
+:::
+
+
+
+TODO: Plot of outcomes over time like in my blog post, or just a few in facets
+
+```{r}
+df_country_aid_laws %>% 
+  mutate(prop_contentious = ifelse(prop_contentious == 0, -0.05, prop_contentious)) %>% 
+  ggplot(aes(x = year, y = prop_contentious, group = country)) +
+  geom_line(size = 0.2, alpha = 0.5) +
+  geom_hline(yintercept = 0.001) +
+  scale_y_continuous(labels = c("Exactly 0%", ">0%", "25%", "50%", "75%", "100%"), 
+                     breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
+  labs(x = NULL, y = "Proportion of contentious aid", color = NULL) +
+  theme_donors()
+```
+
+```{r}
+df_country_aid_laws %>% 
+  mutate(prop_ngo_dom = ifelse(prop_ngo_dom == 0, -0.05, prop_ngo_dom)) %>% 
+  ggplot(aes(x = year, y = prop_ngo_dom, group = country)) +
+  geom_line(size = 0.1, alpha = 0.5) +
+  geom_hline(yintercept = 0.001) +
+  scale_y_continuous(labels = c("Exactly 0%", ">0%", "25%", "50%", "75%", "100%"), 
+                     breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
+  labs(x = NULL, y = "Proportion of aid to domestic NGOs", color = NULL) +
+  theme_donors()
+
+df_country_aid_laws %>% 
+  mutate(prop_ngo_foreign = ifelse(prop_ngo_foreign == 0, -0.05, prop_ngo_foreign)) %>% 
+  ggplot(aes(x = year, y = prop_ngo_foreign, group = country)) +
+  geom_line(size = 0.1, alpha = 0.5) +
+  geom_hline(yintercept = 0.001) +
+  scale_y_continuous(labels = c("Exactly 0%", ">0%", "25%", "50%", "75%", "100%"), 
+                     breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
+  labs(x = NULL, y = "Proportion of aid to foreign NGOs", color = NULL) +
+  theme_donors()
+```
+
+
+
+
+# Hurdle models (total aid)
+
+We're not entirely sure what the actual underlying zero process is for foreign aid, but from looking at the data, we know that there's a time component—before 1995 and after 2005 lots of countries received no aid. We don't know why, though. Maybe there are issues with reporting quality. Maybe some countries didn't need aid anymore (almost like a survival model, but not really, since countries can resume getting aid later after seeing a 0). Maybe there were political reasons. It's impossible to tell, and it goes beyond the scope of our paper here. 
+
+We can see the year-based differences in the presence/absence of 0s in this plot here, with a few countries highlighted to show possible trajectories over time: Georgia starting with 0s then rising to regular levels of aid; Trinidad and Tobago starting with regular levels of aid and then dropping to 0s; Estonia starting with regular levels of aid and then dropping to 0, then resuming aid, then dropping to 0s again.
+
+```{r}
+df_hurdle_highlight <- df_country_aid_laws %>% 
+  mutate(highlight_country = ifelse(country %in% c("Estonia", "Georgia", "Trinidad & Tobago"), 
+                                    country, "Other"),
+         highlight_country = factor(highlight_country, ordered = TRUE),
+         highlight_country = fct_relevel(highlight_country, "Other", after = Inf)) %>% 
+  mutate(highlight = highlight_country != "Other")
+
+df_hurdle_highlight %>% 
+  ggplot(aes(x = year, y = total_oda, group = country, 
+             color = highlight_country, size = highlight)) +
+  geom_line() +
+  scale_y_continuous(trans = "log1p", breaks = c(0, 1e5, 1e8, 1e11),
+                     labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_color_manual(values = c(clrs$Prism[2], clrs$Prism[7], clrs$Prism[9], "grey50")) +
+  scale_size_manual(values = c(0.075, 1.25), guide = "none") +
+  labs(x = NULL, y = "Total ODA (logged)", color = NULL) +
+  guides(color = guide_legend(override.aes = list(linewidth = 1))) +
+  theme_donors()
+```
+
+## Formal statistical model
+
+To account for these dips into 0, we'll use a hurdle lognormal family (since ODA is exponentially distributed) with a multilevel hierarchical model with country-specific intercepts and a year trend with country-specific offsets (following yet another guide I wrote for this project, [this one on multilevel panel data](https://www.andrewheiss.com/blog/2021/12/01/multilevel-models-panel-data-guide/)). 
+
+We center the year at 2000 so that (1) the intercept is interpretable [@Schielzeth:2010] and (2) the MCMC simulation runs faster and more efficiently [@McElreath:2020 §13.4, pp. 420–422].
+
+In the actual models we run we include treatment history, independent variables related to civil society, and inverse probability weights, but here since we're just exploring the mechanics of multilevel hurdle models, we use just a country-and-year-only model.
+
+In **brms**'s [random effects syntax](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification), the model formula looks like this:
+
+```{r eval=FALSE}
+#| code-fold: show
+bf(total_oda ~ year_c + (1 + year_c | gwcode),
+   hu ~ year_c)
+```
+
+@eq-hurdle-baseline shows this in more formal mathematical notation, with all the different random effects offsets and priors all working together simultaneously:
+
+::: {.column-page-inset-right}
+
+$$
+\begin{aligned}
+& \mathrlap{\textbf{Hurdled model of aid $i$ across time $t$ within each country $j$}} \\
+\text{Foreign aid}_{it_j} &\sim \mathrlap{\operatorname{Hurdle\,log-normal}(\pi_{it}, \mu_{it_j}, \sigma_y) \quad \text{or alternatively,}} \\
+\text{Foreign aid}_{it_j} &\sim \mathrlap{\begin{cases}
+0 & \text{with probability } \pi_{it} \\[4pt]
+\operatorname{Log-normal}(\mu_{it_j}, \sigma_y) & \text{with probability } 1 - \pi_{it}
+\end{cases}} \\
+\\
+& \textbf{Models for distribution parameters} \\
+\operatorname{logit}(\pi_{it}) &= \gamma_0 + \gamma_1 \text{Year}_{it} & \text{Zero/not-zero process} \\[4pt]
+\log (\mu_{it_j}) &= (\beta_0 + b_{0_j}) + (\beta_1 + b_{1_j}) \text{Year}_{it_j} & \text{Within-country variation} \\[4pt]
+\left(
+  \begin{array}{c} 
+  b_{0_j} \\
+  b_{1_j}
+  \end{array}
+\right) 
+&\sim \text{MV}\,\mathcal{N}
+\left[
+  \left(
+    \begin{array}{c}
+    0 \\
+    0 \\
+    \end{array}
+  \right)
+  , \,
+  \left(
+  \begin{array}{cc}
+     \sigma^2_{0} & \rho_{0, 1}\, \sigma_{0} \sigma_{1} \\ 
+     \cdots & \sigma^2_{1}
+  \end{array}
+\right)
+\right] & \text{Variability in average intercepts and slopes} \\
+\\
+& \textbf{Priors} \\
+\gamma_0 &\sim \text{Student $t$}(3, -2, 1.5) & \text{Prior for intercept in hurdle model} \\
+\gamma_1 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for year effect in hurdle model} \\
+\beta_0 &\sim \mathcal{N}(20, 2.5) & \text{Prior for global average aid} \\
+\beta_1 &\sim \mathcal{N}(0, 2) & \text{Prior for global year effect} \\
+\sigma_y &\sim \operatorname{Exponential}(1) & \text{Prior for within-country variability} \\
+\sigma_0 &\sim \operatorname{Exponential}(1) & \text{Prior for between-country intercept variability} \\
+\sigma_1 &\sim \operatorname{Exponential}(1) & \text{Prior for between-country slope variability} \\
+\rho &\sim \operatorname{LKJ}(2) & \text{Prior for between-country variability}
+\end{aligned}
+$$ {#eq-hurdle-baseline}
+
+:::
+
+## Prior simulation
+
+For this year-and-country-only model, we set the following priors:
+
+```{r fig.width=7, fig.height=5.5}
+design <- "
+  AAABBB
+  CCCDDD
+  EEFFGG
+"
+
+m_oda_prelim_time_only_total$priors %>% 
+  parse_dist() %>% 
+  # K = dimension of correlation matrix; 
+  # ours is 2x2 here because we have one random slope
+  marginalize_lkjcorr(K = 2) %>%
+  mutate(nice_title = glue::glue("**{class}**: {prior}"),
+         stage = ifelse(dpar == "hu", "Hurdle part (π)", "Lognormal part (µ and σ)")) %>% 
+  mutate(nice_title = fct_inorder(nice_title)) %>% 
+  ggplot(aes(y = 0, dist = .dist, args = .args, fill = prior)) +
+  stat_slab(normalize = "panels") +
+  scale_fill_manual(values = clrs$Prism[1:6]) +
+  facet_manual(vars(stage, nice_title), design = design, scales = "free_x",
+               strip = strip_nested(background_x = list(element_rect(fill = "grey92"), NULL),
+                                    by_layer_x = TRUE)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = NULL) +
+  theme_donors(prior = TRUE) +
+  theme(strip.text = element_markdown())
+```
+
+To make sure these are somewhat reasonable priors, we simulate from them exclusively (following the process outlined in both [*Statistical Rethinking*](https://xcelab.net/rm/statistical-rethinking/) and [*Bayes Rules!*](https://www.bayesrulesbook.com/)). Some of these are wild and go into the trillions, but in general they're in the hundreds-of-millions-of-dollars range, which is good. 
+
+These'll do.
+
+```{r}
+df_country_aid_laws %>%  
+  add_epred_draws(m_oda_prelim_time_only_total$model_prior_only, ndraws = 9,
+                  seed = 12345) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .epred, group = paste(gwcode, .draw))) +
+  geom_line(linewidth = 0.15, color = clrs$Prism[8]) +
+  scale_y_log10(labels = label_dollar(scale_cut = cut_short_scale())) +
+  coord_cartesian(ylim = c(1e3, 5e11)) +
+  facet_wrap(vars(.draw)) +
+  labs(x = "Year", y = "Foreign aid", title = "Results sampled from prior only",
+       subtitle = "Each panel shows plausible aid-year relationships for 142 simulated countries") +
+  theme_donors()
+```
+
+## Posterior checks
+
+```{r warning=FALSE}
+# df_country_aid_laws %>% 
+#   count(year_c, is_zero = total_oda == 0) %>% 
+#   group_by(year_c) %>% 
+#   mutate(prop = n / sum(n)) %>% 
+#   filter(is_zero == TRUE) %>% 
+#   ggplot(aes(x = year_c, y = prop)) +
+#   geom_line()
+
+
+```
+
+### MCMC diagnostics
+
+::: {.panel-tabset}
+
+#### Trace plots
+
+```{r warning=FALSE}
+#| out-width: 100%
+m_oda_prelim_time_only_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^cor_.*|^sigma`, regex = TRUE) %>% 
+  ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
+  geom_line(size = 0.1) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors()
+```
+
+#### Trank plots
+
+```{r warning=FALSE}
+#| out-width: 100%
+m_oda_prelim_time_only_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^cor_.*|^sigma`, regex = TRUE) %>% 
+  group_by(.variable) %>% 
+  mutate(draw_rank = rank(.value)) %>% 
+  ggplot(aes(x = draw_rank, color = factor(.chain))) +
+  stat_bin(geom = "step", binwidth = 500, position = position_identity(), boundary = 0) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors() +
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
+```
+
+#### MCMC duration
+
+```{r}
+#| code-fold: show
+rstan::get_elapsed_time(m_oda_prelim_time_only_total$model$fit)
+
+rstan::get_elapsed_time(m_oda_prelim_time_only_total$model$fit) %>% 
+  as.data.frame() %>% 
+  summarize(longest = lubridate::as.duration(max(warmup + sample)))
+```
+
+:::
+
+### Posterior predictive check
+
+Look at that—it all fits so nicely!
+
+```{r message=FALSE}
+pp_check(m_oda_prelim_time_only_total$model, ndraws = 20) +
+  coord_cartesian(xlim = c(0, 1e10)) +
+  labs(x = "Total ODA", title = "Hurdle lognormal model posterior predictive check") +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  theme_donors() +
+  theme(axis.text.y = element_blank())
+```
+
+
+## Analyzing the posterior
+
+In the actual paper we only interpret the treatment coefficient (total count of barriers, specific barriers, and V-Dem's civil society index), since that's all we can legally interpret when doing causal inference—we've only identified and closed off one pathway in the DAG, so all the other coefficients are incomplete [@WestreichGreenland:2013; @KeeleStevensonElwert:2020].
+
+To help with the intuition behind all these coefficients and moving parts in this hurdle model, though, it's helpful to walk through the different population-level (or global within-country) effects, group level (between-country) effects, and the within- and between-country variability.
+
+```{r}
+r_hurdle <- bind_rows(
+  "original" = tidy(m_oda_prelim_time_only_total$model),
+  "exp" = tidy(m_oda_prelim_time_only_total$model) %>% 
+    mutate(across(c(estimate, conf.low, conf.high), ~exp(.))),
+  .id = "model_type"
+) |> 
+  group_by(model_type) |> 
+  mutate(term = janitor::make_clean_names(term)) |> 
+  # mutate(nice = round(estimate, 3),
+  #        inv = plogis(estimate),
+  #        inv_nice = round(inv, 3)) |> 
+  ungroup() |> 
+  split(~ term + model_type)
+```
+
+```{r}
+tidy(m_oda_prelim_time_only_total$model) %>% 
+  mutate(across(c(estimate, conf.low, conf.high), ~exp(.)))
+```
+
+
+```{r}
+
+plot_cap(m_oda_prelim_time_only_total$model, condition = "year_c", type = "link")
+plot_cap(m_oda_prelim_time_only_total$model, condition = "year_c", type = "response")
+
+mfx_year_hurdle <- m_oda_prelim_time_only_total$model %>% 
+  marginaleffects(newdata = datagrid(year_c = seq(-10, 13, by = 1)),
+                  type = "response") %>% 
+  posteriordraws()
+
+mfx_year_hurdle %>%
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = draw)) +
+  stat_pointinterval()
+```
+
+
+```{r}
+m_oda_prelim_time_only_total$model
+```
+
+### Global analysis
+
+
+
+### Country-specific analysis
+
+### Within- and between-country variability
+
+```{r model-prelim-icc, cache=TRUE}
+performance::variance_decomposition(m_oda_prelim_time_only_total$model)
+```
+
+### Everything all at once
+
+```{r plot-baseline-all-parts, fig.width=6, fig.height=9, warning=FALSE}
+p1 <- m_oda_prelim_time_only_total$model %>% 
+  epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+              re_formula = NA) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[3:5]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted foriegn aid",
+       subtitle = "Predicted global average foreign aid, both µ and hu") +
+  theme_donors()
+
+p2 <- m_oda_prelim_time_only_total$model %>% 
+  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+                re_formula = NA, dpar = "mu") %>% 
+  mutate(.linpred = exp(.linpred)) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .linpred)) +
+  stat_lineribbon(color = clrs$PurpOr[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$PurpOr[3:5]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted foriegn aid",
+       subtitle = "Predicted global average foreign aid, µ only") +
+  theme_donors()
+
+p3 <- m_oda_prelim_time_only_total$model %>% 
+  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+                re_formula = NA,
+                dpar = "hu", transform = TRUE) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = hu)) +
+  stat_lineribbon(color = clrs$Emrld[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Emrld[2:4]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted proportion of\ncountries receiving no aid",
+       subtitle = "Predicted global proportion of countries receiving no aid, hu only") +
+  theme_donors()
+
+(p1 / p2 / p3) +
+  plot_annotation(title = "Conditional effect of time on foreign aid",
+                  subtitle = "total_aid ~ year + (1 + year | country)\nhu ~ year",
+                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                                plot.subtitle = element_text(family = "Inconsolata")))
+```
+
+
+# Zero-inflated models (proportions)
+
+
+Proportion of contentious aid
+
+Proportion of aid to type of NGO
+
+https://www.andrewheiss.com/blog/2021/11/08/beta-regression-guide/
+
+## Formal statistical model
+
+::: {.column-page-inset-right}
+
+$$
+\begin{aligned}
+& \mathrlap{\textbf{Zero-inflated model of proportion $i$ across time $t$ within each country $j$}} \\
+\text{Proportion}_{it_j} &\sim \operatorname{Zero-inflated\, Beta}(\pi_{it}, \mu_{it_j}, \phi_y) \\
+\\
+& \textbf{Models for distribution parameters} \\
+\operatorname{logit}(\pi_{it}) &= \gamma_0 + \gamma_1 \text{Year}_{it} & \text{Zero/not-zero process} \\[4pt]
+\operatorname{logit}(\mu_{it_j}) &= (\beta_0 + b_{0_j}) + (\beta_1 + b_{1_j}) \text{Year}_{it_j} & \text{Within-country variation} \\[4pt]
+\left(
+  \begin{array}{c} 
+  b_{0_j} \\
+  b_{1_j}
+  \end{array}
+\right) 
+&\sim \text{MV}\,\mathcal{N}
+\left[
+  \left(
+    \begin{array}{c}
+    0 \\
+    0 \\
+    \end{array}
+  \right)
+  , \,
+  \left(
+  \begin{array}{cc}
+     \sigma^2_{0} & \rho_{0, 1}\, \sigma_{0} \sigma_{1} \\ 
+     \cdots & \sigma^2_{1}
+  \end{array}
+\right)
+\right] & \text{Variability in average intercepts and slopes} \\
+\\
+& \textbf{Priors} \\
+\gamma_0 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for intercept in hurdle model} \\
+\gamma_1 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for year effect in hurdle model} \\
+\beta_0 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for global average proportion} \\
+\beta_1 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for global year effect} \\
+\phi_y &\sim \operatorname{Exponential}(1) & \text{Prior for within-country variability} \\
+\sigma_0 &\sim \operatorname{Exponential}(1) & \text{Prior for between-country intercept variability} \\
+\sigma_1 &\sim \operatorname{Exponential}(1) & \text{Prior for between-country slope variability} \\
+\rho &\sim \operatorname{LKJ}(2) & \text{Prior for between-country variability}
+\end{aligned}
+$$ {#eq-zibeta-baseline}
+
+:::
+
+## Prior simulation
+
+## Posterior analysis
+
+```{r plot-baseline-zi-all-parts, fig.width=6, fig.height=9, warning=FALSE}
+p1 <- m_purpose_prelim_time_only_total$model %>% 
+  epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+              re_formula = NA) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Peach[3:5]) +
+  coord_cartesian(ylim = c(0, 0.16)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
+       subtitle = "Predicted global average proportion of contentious aid, both µ and zi") +
+  theme_donors()
+
+p2 <- m_purpose_prelim_time_only_total$model %>% 
+  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+                re_formula = NA, dpar = "mu") %>% 
+  mutate(.linpred = plogis(.linpred)) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .linpred)) +
+  stat_lineribbon(color = clrs$PurpOr[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$PurpOr[3:5]) +
+  coord_cartesian(ylim = c(0, 0.16)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
+       subtitle = "Predicted global average proportion of contentious aid, µ only") +
+  theme_donors()
+
+p3 <- m_purpose_prelim_time_only_total$model %>% 
+  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+                re_formula = NA,
+                dpar = "zi", transform = TRUE) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = zi)) +
+  stat_lineribbon(color = clrs$Emrld[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Emrld[2:4]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted proportion of\ncountries with 0% contentious aid",
+       subtitle = "Predicted global proportion of countries receiving no contentious aid, zi only") +
+  theme_donors()
+
+(p1 / p2 / p3) +
+  plot_annotation(title = "Conditional effect of time on proportion of contentious aid",
+                  subtitle = "prop_contentious ~ year + (1 + year | country)\nzi ~ year",
+                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                                plot.subtitle = element_text(family = "Inconsolata")))
+```
+
+## MCMC diagnostics
+
+::: {.panel-tabset}
+
+### Trace plots
+
+```{r warning=FALSE}
+#| out-width: 100%
+m_purpose_prelim_time_only_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
+  ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
+  geom_line(size = 0.1) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors()
+```
+
+### Trank plots
+
+```{r warning=FALSE}
+#| out-width: 100%
+m_purpose_prelim_time_only_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
+  group_by(.variable) %>% 
+  mutate(draw_rank = rank(.value)) %>% 
+  ggplot(aes(x = draw_rank, color = factor(.chain))) +
+  stat_bin(geom = "step", binwidth = 500, position = position_identity(), boundary = 0) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors() +
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
+```
+
+### MCMC duration
+
+```{r}
+#| code-fold: show
+rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit)
+
+rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit) %>% 
+  as.data.frame() %>% 
+  summarize(longest = lubridate::as.duration(max(warmup + sample)))
+```
+
+:::
+
+## Results
+
+## Posterior predictive check
+
+```{r message=FALSE}
+pp_check(m_purpose_prelim_time_only_total$model, ndraws = 20) +
+  labs(x = "Percent of contentious aid", 
+       title = "Zero-inflated beta model posterior predictive check") +
+  scale_x_continuous(labels = label_percent()) +
+  theme_donors()
+```
+
+
+## Analyzing the posterior
+
+### Global analysis
+
+### Country-specific analysis
+
+### Within- and between-country variability
+
+
+## References
