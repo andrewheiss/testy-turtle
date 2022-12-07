@@ -41,33 +41,33 @@ color_scheme_set("viridisC")
 my_seed <- 1234
 set.seed(my_seed)
 
-withr::with_dir(here::here(), {
-  source(tar_read(plot_funs))
-  source(tar_read(misc_funs))
-  
-  # Data
-  df_country_aid <- tar_read(country_aid_final)
-  df_country_aid_laws <- filter(df_country_aid, laws)
-  
-  # Treatment models
-  tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
-             m_oda_treatment_entry, m_oda_treatment_funding, 
-             m_oda_treatment_ccsi))
-  
-  # IPTW data
-  tar_load(c(df_oda_iptw_total, df_oda_iptw_advocacy, 
-             df_oda_iptw_entry, df_oda_iptw_funding,
-             df_oda_iptw_ccsi))
-  
-  # Outcome models
-  tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
-             m_oda_outcome_entry, m_oda_outcome_funding,
-             m_oda_outcome_ccsi))
-  
-  # Results tables
-  tar_load(c(models_tbl_h1_treatment_num, models_tbl_h1_treatment_denom))
-  tar_load(c(models_tbl_h1_outcome_dejure, models_tbl_h1_outcome_defacto))
-})
+# Stuff from targets
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(misc_funs), .GlobalEnv))
+
+# Data
+df_country_aid <- tar_read(country_aid_final)
+df_country_aid_laws <- filter(df_country_aid, laws)
+
+# Treatment models
+tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
+           m_oda_treatment_entry, m_oda_treatment_funding, 
+           m_oda_treatment_ccsi))
+
+# IPTW data
+tar_load(c(df_oda_iptw_total, df_oda_iptw_advocacy, 
+           df_oda_iptw_entry, df_oda_iptw_funding,
+           df_oda_iptw_ccsi))
+
+# Outcome models
+tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
+           m_oda_outcome_entry, m_oda_outcome_funding,
+           m_oda_outcome_ccsi))
+
+# Results tables
+tar_load(c(models_tbl_h1_treatment_num, models_tbl_h1_treatment_denom))
+tar_load(c(models_tbl_h1_outcome_dejure, models_tbl_h1_outcome_defacto))
 ```
 
 ## Weight models

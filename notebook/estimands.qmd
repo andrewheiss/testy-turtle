@@ -5,9 +5,9 @@ title: "Theoretical and empirical estimands"
 
 TODO: We can't just say (in words or in math) that we want to know the effect of crackdowns on aid. We need to incorporate the within or between effects, or the conditional or marginal effects:
 
-> We suggest that research questions be phrased in a way that makes the principal comparison being made explicitly clear. We then urge researchers to choose a model whose interpretation matches the intended research question. In particular, we encourage researchers to phrase research questions in a way that is more specific than “what is the effect of x on y?” In TSCS data, any answer to this general question pools across a comparison of cases and a comparison of time points, and we have to assume that the way that cases compare to one another—whether they are countries, U.S. states, political parties, institutions, elites, or individual survey respondents—is equal to the way that they compare to themselves over time. Such an assumption does not respect the nuanced theories that social scientists develop about these cases or about how they change over time. [@KropkoKubinec2020]
+> We suggest that research questions be phrased in a way that makes the principal comparison being made explicitly clear. We then urge researchers to choose a model whose interpretation matches the intended research question. In particular, we encourage researchers to phrase research questions in a way that is more specific than “what is the effect of x on y?” In TSCS data, any answer to this general question pools across a comparison of cases and a comparison of time points, and we have to assume that the way that cases compare to one another—whether they are countries, U.S. states, political parties, institutions, elites, or individual survey respondents—is equal to the way that they compare to themselves over time. Such an assumption does not respect the nuanced theories that social scientists develop about these cases or about how they change over time. [@KropkoKubinec:2020]
 
-@MuffHeldKeller2016 argue that conditional models (i.e. average/typical country where offsets are set to 0) are the "more powerful choice to explain how covariates are associated with a non-normal response" rather than marginal models (i.e. countries on average). This is the *within* effect.
+@MuffHeldKeller:2016 argue that conditional models (i.e. average/typical country where offsets are set to 0) are the "more powerful choice to explain how covariates are associated with a non-normal response" rather than marginal models (i.e. countries on average). This is the *within* effect.
 
 
 ---
@@ -45,8 +45,8 @@ Before getting into the different estimands, here's some quick translation betwe
 
 In section 2.4 of @Neal:2020 ([p. 15](https://www.bradyneal.com/Introduction_to_Causal_Inference-Dec17_2020-Neal.pdf#page=23)), there's a flowchart of estimands that looks a lot like the estimand framework in @LundbergJohnsonStewart:2021, just with different names:
 
-```{r echo=FALSE}
-knitr::include_graphics("img/flowchart.png")
+```{r include-flowchart, echo=FALSE}
+knitr::include_graphics("img/flowchart.png", error = FALSE)
 ```
 
 According to footnote 14 in that chapter, the causal estimand (which seems to map to the theoretical estimand) contains $\operatorname{do}(\cdot)$, while the statistical estimand (which seems to map to the empirical estimand) does not. Based on this, we can translate *do*-calculus-style equations into potential outcomes-style equations like these general forms for binary and continuous average causal effects:

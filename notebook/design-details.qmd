@@ -118,7 +118,7 @@ Whereas recognition of the *inherent dignity* and of the ***equal and inalienabl
 
 ## Prism (`clrs$Prism`)
 
-```{r fig.width=8, fig.height=0.2}
+```{r show-prism-short, fig.width=8, fig.height=0.2}
 #| out-width: 100%
 #| echo: false
 clrs$Prism %>% show_nice_pal(show_text = FALSE, nrow = 1)
@@ -128,13 +128,13 @@ Our main palette is the [qualitative Prism palette from CARTOColors](https://car
 
 Access the palette using `clrs$Prism`, and access specific colors with indexes like `clrs$Prism[8]`:
 
-```{r fig.width=8, fig.height=2}
+```{r show-prism, fig.width=8, fig.height=2}
 #| out-width: 100%
 #| echo: false
 clrs$Prism %>% show_nice_pal(show_text = TRUE, nrow = 2)
 ```
 
-```{r}
+```{r hex-prism}
 #| code-fold: show
 clrs$Prism %>% set_names(1:length(.))
 ```
@@ -147,13 +147,13 @@ In some cases, like with plots that use `geom_lineribbon()`, we use a range of s
 
 ### Emerald (`clrs$Emrld`)
 
-```{r fig.width=8, fig.height=1}
+```{r show-emrld, fig.width=8, fig.height=1}
 #| out-width: 100%
 #| echo: false
 clrs$Emrld %>% show_nice_pal(show_text = TRUE)
 ```
 
-```{r}
+```{r hex-emrld}
 #| code-fold: show
 clrs$Emrld %>% set_names(1:length(.))
 ```
@@ -162,13 +162,13 @@ clrs$Emrld %>% set_names(1:length(.))
 
 ### Purple orange (`clrs$PurpOr`)
 
-```{r fig.width=8, fig.height=1}
+```{r show-purpor, fig.width=8, fig.height=1}
 #| out-width: 100%
 #| echo: false
 clrs$PurpOr %>% show_nice_pal(show_text = TRUE)
 ```
 
-```{r}
+```{r hex-purpor}
 #| code-fold: show
 clrs$PurpOr %>% set_names(1:length(.))
 ```
@@ -177,13 +177,13 @@ clrs$PurpOr %>% set_names(1:length(.))
 
 ### Teal (`clrs$Teal`)
 
-```{r fig.width=8, fig.height=1}
+```{r show-teal, fig.width=8, fig.height=1}
 #| out-width: 100%
 #| echo: false
 clrs$Teal %>% show_nice_pal(show_text = TRUE)
 ```
 
-```{r}
+```{r hex-teal}
 #| code-fold: show
 clrs$Teal %>% set_names(1:length(.))
 ```
@@ -192,13 +192,13 @@ clrs$Teal %>% set_names(1:length(.))
 
 ### Peach (`clrs$Peach`)
 
-```{r fig.width=8, fig.height=1}
+```{r show-peach, fig.width=8, fig.height=1}
 #| out-width: 100%
 #| echo: false
 clrs$Peach %>% show_nice_pal(show_text = TRUE)
 ```
 
-```{r}
+```{r hex-peach}
 #| code-fold: show
 clrs$Peach %>% set_names(1:length(.))
 ```
@@ -207,13 +207,13 @@ clrs$Peach %>% set_names(1:length(.))
 
 ### Sunset (`clrs$Sunset`)
 
-```{r fig.width=8, fig.height=1}
+```{r show-sunset, fig.width=8, fig.height=1}
 #| out-width: 100%
 #| echo: false
 clrs$Sunset %>% show_nice_pal(show_text = TRUE)
 ```
 
-```{r}
+```{rl hex-sunset}
 #| code-fold: show
 clrs$Sunset %>% set_names(1:length(.))
 ```

@@ -1,0 +1,14 @@
+{
+  "hash": "1605787fff17bb5a8fc56b2346130ea6",
+  "result": {
+    "markdown": "---\ntitle: \"Manuscript\"\nbibliography: \"/Users/andrew/Desktop/Crackdowns and aid/testy-turtle/manuscript/bibliography.bib\"\ncsl: \"/Users/andrew/Desktop/Crackdowns and aid/testy-turtle/manuscript/pandoc/csl/chicago-author-date.csl\"\nformat:\n  html:\n    code-fold: true\nreferences:\n- type: article-journal\n  id: Lovelace1842\n  author:\n  - family: Lovelace\n    given: Augusta Ada\n  issued:\n    date-parts:\n    - - 1842\n  title: \"Sketch of the analytical engine invented by Charles Babbage, by LF Menabrea, officer of the military engineers, with notes upon the memoir by the translator\"\n  title-short: Molecular structure of nucleic acids\n  container-title: Taylor’s Scientific Memoirs\n  volume: 3\n  page: 666-731\n  language: en-GB\n---\n\n\nHere's the paper itself [@Lovelace1842].\n\n\n::: {.cell layout-align=\"center\"}\n<table class=\"table\" style=\"margin-left: auto; margin-right: auto;\">\n <thead>\n  <tr>\n   <th style=\"text-align:right;\"> Thing </th>\n   <th style=\"text-align:left;\"> Citation </th>\n  </tr>\n </thead>\n<tbody>\n  <tr>\n   <td style=\"text-align:right;\"> 1234 </td>\n   <td style=\"text-align:left;\"> @Lovelace1842 </td>\n  </tr>\n</tbody>\n</table>\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

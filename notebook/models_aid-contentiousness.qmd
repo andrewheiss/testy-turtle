@@ -40,33 +40,33 @@ color_scheme_set("viridisC")
 my_seed <- 1234
 set.seed(my_seed)
 
-withr::with_dir(here::here(), {
-  source(tar_read(plot_funs))
-  source(tar_read(misc_funs))
-  
-  # Data
-  df_country_aid <- tar_read(country_aid_final)
-  df_country_aid_laws <- filter(df_country_aid, laws)
-  
-  # Treatment models
-  tar_load(c(m_purpose_treatment_total, m_purpose_treatment_advocacy, 
-             m_purpose_treatment_entry, m_purpose_treatment_funding, 
-             m_purpose_treatment_ccsi))
-  
-  # IPTW data
-  tar_load(c(df_purpose_iptw_total, df_purpose_iptw_advocacy, 
-             df_purpose_iptw_entry, df_purpose_iptw_funding,
-             df_purpose_iptw_ccsi))
-  
-  # Outcome models
-  tar_load(c(m_purpose_outcome_total, m_purpose_outcome_advocacy, 
-             m_purpose_outcome_entry, m_purpose_outcome_funding,
-             m_purpose_outcome_ccsi))
-  
-  # Results tables
-  # tar_load(c(models_tbl_h2_treatment_num, models_tbl_h2_treatment_denom))
-  # tar_load(c(models_tbl_h2_outcome_dejure, models_tbl_h2_outcome_defacto))
-})
+# Stuff from targets
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(misc_funs), .GlobalEnv))
+
+# Data
+df_country_aid <- tar_read(country_aid_final)
+df_country_aid_laws <- filter(df_country_aid, laws)
+
+# Treatment models
+tar_load(c(m_purpose_treatment_total, m_purpose_treatment_advocacy, 
+           m_purpose_treatment_entry, m_purpose_treatment_funding, 
+           m_purpose_treatment_ccsi))
+
+# IPTW data
+tar_load(c(df_purpose_iptw_total, df_purpose_iptw_advocacy, 
+           df_purpose_iptw_entry, df_purpose_iptw_funding,
+           df_purpose_iptw_ccsi))
+
+# Outcome models
+tar_load(c(m_purpose_outcome_total, m_purpose_outcome_advocacy, 
+           m_purpose_outcome_entry, m_purpose_outcome_funding,
+           m_purpose_outcome_ccsi))
+
+# Results tables
+# tar_load(c(models_tbl_h2_treatment_num, models_tbl_h2_treatment_denom))
+# tar_load(c(models_tbl_h2_outcome_dejure, models_tbl_h2_outcome_defacto))
 ```
 
 ## Weight models

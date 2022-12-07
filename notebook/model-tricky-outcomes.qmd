@@ -41,7 +41,7 @@ bayesplot::color_scheme_set(clrs$Sunset[2:7])
 
 All of our outcome variables have a substantial and nontrivial number of zeros in them:
 
-```{r}
+```{r tbl-zero-summary}
 bind_rows(
   `Total ODA (H1)` = count(df_country_aid_laws, is_zero = total_oda == 0),
   `Proportion of contentious aid (H2)` = count(df_country_aid_laws, is_zero = prop_contentious == 0),
@@ -61,7 +61,7 @@ bind_rows(
 
 Here's what that looks like with foreign aid:
 
-```{r fig.width=8, fig.height=4}
+```{r plot-zero-outcomes, fig.width=8, fig.height=4}
 #| fig-width: 8
 #| fig-height: 4
 #| out-width: 90%
@@ -222,7 +222,7 @@ Figuring out all this model and likelihood stuff for hurdle and zero-inflated re
 
 TODO: Plot of outcomes over time like in my blog post, or just a few in facets
 
-```{r}
+```{r plot-all-prop-contentious}
 df_country_aid_laws %>% 
   mutate(prop_contentious = ifelse(prop_contentious == 0, -0.05, prop_contentious)) %>% 
   ggplot(aes(x = year, y = prop_contentious, group = country)) +
@@ -234,7 +234,7 @@ df_country_aid_laws %>%
   theme_donors()
 ```
 
-```{r}
+```{r plot-all-prop-ngo-domestic}
 df_country_aid_laws %>% 
   mutate(prop_ngo_dom = ifelse(prop_ngo_dom == 0, -0.05, prop_ngo_dom)) %>% 
   ggplot(aes(x = year, y = prop_ngo_dom, group = country)) +
@@ -244,7 +244,9 @@ df_country_aid_laws %>%
                      breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
   labs(x = NULL, y = "Proportion of aid to domestic NGOs", color = NULL) +
   theme_donors()
+```
 
+```{r plot-all-prop-ngo-foreign}
 df_country_aid_laws %>% 
   mutate(prop_ngo_foreign = ifelse(prop_ngo_foreign == 0, -0.05, prop_ngo_foreign)) %>% 
   ggplot(aes(x = year, y = prop_ngo_foreign, group = country)) +
@@ -257,15 +259,13 @@ df_country_aid_laws %>%
 ```
 
 
-
-
 # Hurdle models (total aid)
 
 We're not entirely sure what the actual underlying zero process is for foreign aid, but from looking at the data, we know that there's a time component—before 1995 and after 2005 lots of countries received no aid. We don't know why, though. Maybe there are issues with reporting quality. Maybe some countries didn't need aid anymore (almost like a survival model, but not really, since countries can resume getting aid later after seeing a 0). Maybe there were political reasons. It's impossible to tell, and it goes beyond the scope of our paper here. 
 
 We can see the year-based differences in the presence/absence of 0s in this plot here, with a few countries highlighted to show possible trajectories over time: Georgia starting with 0s then rising to regular levels of aid; Trinidad and Tobago starting with regular levels of aid and then dropping to 0s; Estonia starting with regular levels of aid and then dropping to 0, then resuming aid, then dropping to 0s again.
 
-```{r}
+```{r plot-oda-over-time-highlight}
 df_hurdle_highlight <- df_country_aid_laws %>% 
   mutate(highlight_country = ifelse(country %in% c("Estonia", "Georgia", "Trinidad & Tobago"), 
                                     country, "Other"),
@@ -296,7 +296,7 @@ In the actual models we run we include treatment history, independent variables 
 
 In **brms**'s [random effects syntax](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification), the model formula looks like this:
 
-```{r eval=FALSE}
+```{r example-brms-hurdle, eval=FALSE}
 #| code-fold: show
 bf(total_oda ~ year_c + (1 + year_c | gwcode),
    hu ~ year_c)
@@ -359,7 +359,8 @@ $$ {#eq-hurdle-baseline}
 
 For this year-and-country-only model, we set the following priors:
 
-```{r fig.width=7, fig.height=5.5}
+```{r plot-hurdle-priors, fig.width=7, fig.height=5.5}
+#| out-width: 80%
 design <- "
   AAABBB
   CCCDDD
@@ -390,7 +391,8 @@ To make sure these are somewhat reasonable priors, we simulate from them exclusi
 
 These'll do.
 
-```{r}
+```{r prior-simulations-hurdle}
+#| out-width: 85%
 df_country_aid_laws %>%  
   add_epred_draws(m_oda_prelim_time_only_total$model_prior_only, ndraws = 9,
                   seed = 12345) %>% 
@@ -407,16 +409,14 @@ df_country_aid_laws %>%
 
 ## Posterior checks
 
-```{r warning=FALSE}
-# df_country_aid_laws %>% 
-#   count(year_c, is_zero = total_oda == 0) %>% 
-#   group_by(year_c) %>% 
-#   mutate(prop = n / sum(n)) %>% 
-#   filter(is_zero == TRUE) %>% 
-#   ggplot(aes(x = year_c, y = prop)) +
-#   geom_line()
-
-
+```{r plot-prop-zeros-over-time, warning=FALSE, include=FALSE, eval=FALSE}
+df_country_aid_laws %>%
+  count(year_c, is_zero = total_oda == 0) %>%
+  group_by(year_c) %>%
+  mutate(prop = n / sum(n)) %>%
+  filter(is_zero == TRUE) %>%
+  ggplot(aes(x = year_c, y = prop)) +
+  geom_line()
 ```
 
 ### MCMC diagnostics
@@ -425,8 +425,8 @@ df_country_aid_laws %>%
 
 #### Trace plots
 
-```{r warning=FALSE}
-#| out-width: 100%
+```{r plot-hu-trace, warning=FALSE}
+#| out-width: 80%
 m_oda_prelim_time_only_total$model %>% 
   gather_draws(`^b_.*|^sd_.*|^cor_.*|^sigma`, regex = TRUE) %>% 
   ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
@@ -438,8 +438,8 @@ m_oda_prelim_time_only_total$model %>%
 
 #### Trank plots
 
-```{r warning=FALSE}
-#| out-width: 100%
+```{r plot-hu-trank, warning=FALSE}
+#| out-width: 80%
 m_oda_prelim_time_only_total$model %>% 
   gather_draws(`^b_.*|^sd_.*|^cor_.*|^sigma`, regex = TRUE) %>% 
   group_by(.variable) %>% 
@@ -454,7 +454,7 @@ m_oda_prelim_time_only_total$model %>%
 
 #### MCMC duration
 
-```{r}
+```{r duration-hu}
 #| code-fold: show
 rstan::get_elapsed_time(m_oda_prelim_time_only_total$model$fit)
 
@@ -469,7 +469,7 @@ rstan::get_elapsed_time(m_oda_prelim_time_only_total$model$fit) %>%
 
 Look at that—it all fits so nicely!
 
-```{r message=FALSE}
+```{r plot-pp-check-hu, message=FALSE}
 pp_check(m_oda_prelim_time_only_total$model, ndraws = 20) +
   coord_cartesian(xlim = c(0, 1e10)) +
   labs(x = "Total ODA", title = "Hurdle lognormal model posterior predictive check") +
@@ -485,7 +485,7 @@ In the actual paper we only interpret the treatment coefficient (total count of 
 
 To help with the intuition behind all these coefficients and moving parts in this hurdle model, though, it's helpful to walk through the different population-level (or global within-country) effects, group level (between-country) effects, and the within- and between-country variability.
 
-```{r}
+```{r extract-params-hu, warning=FALSE}
 r_hurdle <- bind_rows(
   "original" = tidy(m_oda_prelim_time_only_total$model),
   "exp" = tidy(m_oda_prelim_time_only_total$model) %>% 
@@ -501,16 +501,17 @@ r_hurdle <- bind_rows(
   split(~ term + model_type)
 ```
 
-```{r}
+```{r show-hu-coefs-exp, warning=FALSE}
+#| code-fold: show
 tidy(m_oda_prelim_time_only_total$model) %>% 
   mutate(across(c(estimate, conf.low, conf.high), ~exp(.)))
 ```
 
 
-```{r}
-
-plot_cap(m_oda_prelim_time_only_total$model, condition = "year_c", type = "link")
-plot_cap(m_oda_prelim_time_only_total$model, condition = "year_c", type = "response")
+```{r plot-mfx-hu}
+#| out-width: 80%
+# plot_cap(m_oda_prelim_time_only_total$model, condition = "year_c", type = "link")
+# plot_cap(m_oda_prelim_time_only_total$model, condition = "year_c", type = "response")
 
 mfx_year_hurdle <- m_oda_prelim_time_only_total$model %>% 
   marginaleffects(newdata = datagrid(year_c = seq(-10, 13, by = 1)),
@@ -524,7 +525,7 @@ mfx_year_hurdle %>%
 ```
 
 
-```{r}
+```{r results-hu}
 m_oda_prelim_time_only_total$model
 ```
 
@@ -543,6 +544,7 @@ performance::variance_decomposition(m_oda_prelim_time_only_total$model)
 ### Everything all at once
 
 ```{r plot-baseline-all-parts, fig.width=6, fig.height=9, warning=FALSE}
+#| out-width: 80%
 p1 <- m_oda_prelim_time_only_total$model %>% 
   epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
               re_formula = NA) %>% 
@@ -711,8 +713,8 @@ p3 <- m_purpose_prelim_time_only_total$model %>%
 
 ### Trace plots
 
-```{r warning=FALSE}
-#| out-width: 100%
+```{r plot-zi-trace, warning=FALSE}
+#| out-width: 80%
 m_purpose_prelim_time_only_total$model %>% 
   gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
   ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
@@ -724,8 +726,8 @@ m_purpose_prelim_time_only_total$model %>%
 
 ### Trank plots
 
-```{r warning=FALSE}
-#| out-width: 100%
+```{r plot-zi-trank, warning=FALSE}
+#| out-width: 80%
 m_purpose_prelim_time_only_total$model %>% 
   gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
   group_by(.variable) %>% 
@@ -740,7 +742,7 @@ m_purpose_prelim_time_only_total$model %>%
 
 ### MCMC duration
 
-```{r}
+```{r duration-zi}
 #| code-fold: show
 rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit)
 
@@ -751,11 +753,12 @@ rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit) %>%
 
 :::
 
+
 ## Results
 
 ## Posterior predictive check
 
-```{r message=FALSE}
+```{r plot-pp-check-zi, message=FALSE}
 pp_check(m_purpose_prelim_time_only_total$model, ndraws = 20) +
   labs(x = "Percent of contentious aid", 
        title = "Zero-inflated beta model posterior predictive check") +

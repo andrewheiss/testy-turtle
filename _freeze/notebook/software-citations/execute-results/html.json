@@ -1,0 +1,14 @@
+{
+  "hash": "a42be949c7cc23505c956a615bc692a3",
+  "result": {
+    "markdown": "---\ntitle: Software citations\nnocite: \"@bayesplot1, @bayesplot2, @brms1, @brms2, @brms3, @broom, @broom.mixed, @bs4Dash, @car, @clustermq, @cmdstanr, @countrycode, @dagitty, @datawizard, @dplyr, @DT, @emmeans, @emoji, @extraDistr, @fixest, @fs, @future, @ggdag, @ggdist, @ggh4x, @ggplot2, @ggtext, @glue, @gt, @haven, @here, @Hmisc, @httr, @janitor, @jsonlite, @kableExtra, @knitr1, @knitr2, @knitr3, @latex2exp, @lubridate, @marginaleffects, @markdown, @modelsummary, @naniar, @patchwork, @performance, @posterior1, @posterior2, @purrr, @ragg, @rcartocolor, @readxl, @remotes, @renv, @rmarkdown1, @rmarkdown2, @rmarkdown3, @rstan, @scales, @sf, @softbib, @states, @tarchetypes, @targets, @testthat, @tibble, @tictoc, @tidybayes, @tidyr, @tidyverse, @visNetwork, @WDI, @xml2, @zoo\"\nbibliography: softbib.bib\n---\n\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

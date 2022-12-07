@@ -9,6 +9,7 @@ library(tibble)
 # portable, we rewrite it every time this pipeline is run (and we don't track
 # _targets.yaml with git)
 tar_config_set(store = here::here('_targets'))
+tar_config_set(script = here::here('_targets.R'))
 
 # General variables
 csl <- "pandoc/csl/apa.csl"

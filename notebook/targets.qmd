@@ -24,10 +24,9 @@ To build our entire project, run `targets::tar_make()` at the R console.
 
 Here's our complete pipeline:
 
-```{r show-targets-pipeline, echo=FALSE}
-withr::with_dir(here::here(), {
-  targets::tar_glimpse()
-})
+```{r show-targets-pipeline, echo=TRUE}
+library(targets)
+tar_glimpse()
 ```
 
 

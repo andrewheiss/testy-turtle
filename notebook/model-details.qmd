@@ -24,35 +24,32 @@ library(kableExtra)
 library(lubridate)
 library(here)
 
-withr::with_dir(here::here(), {
-  # Treatment models
-  tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
-             m_oda_treatment_entry, m_oda_treatment_funding, 
-             m_oda_treatment_ccsi, m_oda_treatment_repress))
-  tar_load(c(m_purpose_treatment_total, m_purpose_treatment_advocacy, 
-             m_purpose_treatment_entry, m_purpose_treatment_funding, 
-             m_purpose_treatment_ccsi, m_purpose_treatment_repress))
-  # tar_load(c(m_recip_treatment_total_dom, m_recip_treatment_advocacy_dom, 
-  #            m_recip_treatment_entry_dom, m_recip_treatment_funding_dom, 
-  #            m_recip_treatment_ccsi_dom, m_recip_treatment_repress_dom))
-  # tar_load(c(m_recip_treatment_total_foreign, m_recip_treatment_advocacy_foreign, 
-  #            m_recip_treatment_entry_foreign, m_recip_treatment_funding_foreign, 
-  #            m_recip_treatment_ccsi_foreign, m_recip_treatment_repress_foreign))
-  
-  # Outcome models
-  tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
-             m_oda_outcome_entry, m_oda_outcome_funding,
-             m_oda_outcome_ccsi, m_oda_outcome_repress))
-  tar_load(c(m_purpose_outcome_total, m_purpose_outcome_advocacy, 
-             m_purpose_outcome_entry, m_purpose_outcome_funding,
-             m_purpose_outcome_ccsi, m_purpose_outcome_repress))
-  # tar_load(c(m_recip_outcome_total_dom, m_recip_outcome_advocacy_dom, 
-  #            m_recip_outcome_entry_dom, m_recip_outcome_funding_dom,
-  #            m_recip_outcome_ccsi_dom, m_recip_outcome_repress_dom))
-  # tar_load(c(m_recip_outcome_total_foreign, m_recip_outcome_advocacy_foreign, 
-  #            m_recip_outcome_entry_foreign, m_recip_outcome_funding_foreign,
-  #            m_recip_outcome_ccsi_foreign, m_recip_outcome_repress_foreign))
-})
+tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
+           m_oda_treatment_entry, m_oda_treatment_funding, 
+           m_oda_treatment_ccsi, m_oda_treatment_repress))
+tar_load(c(m_purpose_treatment_total, m_purpose_treatment_advocacy, 
+           m_purpose_treatment_entry, m_purpose_treatment_funding, 
+           m_purpose_treatment_ccsi, m_purpose_treatment_repress))
+# tar_load(c(m_recip_treatment_total_dom, m_recip_treatment_advocacy_dom, 
+#            m_recip_treatment_entry_dom, m_recip_treatment_funding_dom, 
+#            m_recip_treatment_ccsi_dom, m_recip_treatment_repress_dom))
+# tar_load(c(m_recip_treatment_total_foreign, m_recip_treatment_advocacy_foreign, 
+#            m_recip_treatment_entry_foreign, m_recip_treatment_funding_foreign, 
+#            m_recip_treatment_ccsi_foreign, m_recip_treatment_repress_foreign))
+
+# Outcome models
+tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
+           m_oda_outcome_entry, m_oda_outcome_funding,
+           m_oda_outcome_ccsi, m_oda_outcome_repress))
+tar_load(c(m_purpose_outcome_total, m_purpose_outcome_advocacy, 
+           m_purpose_outcome_entry, m_purpose_outcome_funding,
+           m_purpose_outcome_ccsi, m_purpose_outcome_repress))
+# tar_load(c(m_recip_outcome_total_dom, m_recip_outcome_advocacy_dom, 
+#            m_recip_outcome_entry_dom, m_recip_outcome_funding_dom,
+#            m_recip_outcome_ccsi_dom, m_recip_outcome_repress_dom))
+# tar_load(c(m_recip_outcome_total_foreign, m_recip_outcome_advocacy_foreign, 
+#            m_recip_outcome_entry_foreign, m_recip_outcome_funding_foreign,
+#            m_recip_outcome_ccsi_foreign, m_recip_outcome_repress_foreign))
 ```
 
 

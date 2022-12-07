@@ -1,6 +1,7 @@
 project:
   title: "NGO Crackdowns and Foreign Aid"
   type: website
+  execute-dir: project
   render:
     # Render all .qmd files
     - "**/*.qmd"

@@ -20,16 +20,14 @@ font_opts <- list(extra.preamble = c("\\usepackage{libertine}",
                   dvisvgm.opts = "--font-format=woff")
 
 # Load data 
-withr::with_dir(here::here(), {
-  # Plotting functions
-  invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
-  
-  source(tar_read(misc_funs))
-  
-  df_country_aid <- tar_read(country_aid_final)
-  df_country_aid_laws <- filter(df_country_aid, laws)
-})
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(misc_funs), .GlobalEnv))
+
+df_country_aid <- tar_read(country_aid_final)
+df_country_aid_laws <- filter(df_country_aid, laws)
 ```
+
 
 # Hierarchical structure
 
@@ -100,7 +98,8 @@ Our data includes information about `r details$num_countries` countries across `
 ```
 
 
-```{r}
+```{r plot-biggest-movers}
+#| out-width: 80%
 biggest_movers <- df_country_aid_laws %>% 
   group_by(country) %>% 
   filter(!any(total_oda == 0)) %>% 
