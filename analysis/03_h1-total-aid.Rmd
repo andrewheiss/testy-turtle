@@ -92,7 +92,7 @@ We use [generic weakly informative priors](https://mc-stan.org/users/documentati
 pri_int <- ggplot() +
   stat_function(fun = ~ dlst(.x, df = 5, mu = 0, sigma = 1.5),
                 geom = "area", fill = "grey80", color = "black") +
-  labs(x = TeX("\\textbf{Intercept (β_0)}")) +
+  labs(x = TeX(r'($\textbf{Intercept}\ (β_0)$)')) +
   annotate(geom = "label", x = 0, y = 0.0635, label = "Student t(5, 0, 1.5)", size = pts(9)) +
   xlim(-10, 10) +
   theme_donors(prior = TRUE)
@@ -101,14 +101,14 @@ pri_coef <- ggplot() +
   stat_function(fun = ~ dnorm(.x, 0, 2.5),
                 geom = "area", fill = "grey80", color = "black") +
   xlim(-10, 10) +
-  labs(x = TeX("\\textbf{Coefficients (β_x)}")) +
+  labs(x = TeX(r'($\textbf{Coefficients}\ (β_x)$)')) +
   annotate(geom = "label", x = 0, y = 0.04, label = "N(0, 3)", size = pts(9)) +
   theme_donors(prior = TRUE)
 
 pri_sigma <- ggplot() +
   stat_function(fun = ~ dcauchy(.x, location = 0, scale = 1),
                 geom = "area", fill = "grey80", color = "black") +
-  labs(x = "Errors (σ)") +
+  labs(x = TeX(r'($\textbf{Errors}\ (σ)$)')) +
   annotate(geom = "label", x = 5, y = 0.08, label = "Cauchy(0, 1)", size = pts(9)) +
   xlim(0, 10) +
   theme_donors(prior = TRUE)
@@ -200,7 +200,7 @@ summary(df_oda_iptw_funding$iptw)
 
 df_oda_iptw_funding %>% 
   ggplot(aes(x = iptw)) +
-  geom_histogram(binwidth = 5, boundary = 0) +
+  geom_histogram(binwidth = 2, boundary = 0) +
   theme_donors()
 ```
 
@@ -361,7 +361,7 @@ $$
 pri_int <- ggplot() +
   stat_function(fun = ~ dnorm(.x, mean = 0, sd = 10),
                 geom = "area", fill = "grey80", color = "black") +
-  labs(x = TeX("\\textbf{Intercept (β_0)}")) +
+  labs(x = TeX(r'($\textbf{Intercept}\ (β_0)$)')) +
   annotate(geom = "label", x = 0, y = 0.004, label = "N(0, 10)", size = pts(9)) +
   xlim(-40, 40) +
   theme_donors(prior = TRUE)
@@ -369,7 +369,7 @@ pri_int <- ggplot() +
 pri_coef <- ggplot() +
   stat_function(fun = ~ dnorm(.x, mean = 0, sd = 1),
                 geom = "area", fill = "grey80", color = "black") +
-  labs(x = TeX("\\textbf{Coefficients (β_x)}")) +
+  labs(x = TeX(r'($\textbf{Coefficients}\ (β_x)$)')) +
   annotate(geom = "label", x = 0, y = 0.04, label = "N(0, 1)", size = pts(9)) +
   xlim(-5, 5) +
   theme_donors(prior = TRUE)
@@ -377,7 +377,7 @@ pri_coef <- ggplot() +
 pri_sigma <- ggplot() +
   stat_function(fun = ~ dcauchy(.x, location = 0, scale = 1),
                 geom = "area", fill = "grey80", color = "black") +
-  labs(x = "Errors (σ)") +
+  labs(x = TeX(r'($\textbf{Errors}\ (σ)$)')) +
   annotate(geom = "label", x = 5, y = 0.033, label = "Cauchy(0, 1)", size = pts(9)) +
   xlim(0, 10) +
   theme_donors(prior = TRUE)
@@ -388,7 +388,7 @@ pri_cor <- tibble(prior = "lkjcorr(6)") %>%
   ggplot(aes(y = 0, dist = .dist, args = .args)) +
   stat_slab(color = "black", fill = "grey80", size = 0.5) +
   geom_hline(yintercept = 0, color = "black", size = 0.5) +
-  labs(x = "Random effects correlation (r)") +
+  labs(x = TeX(r'($\textbf{Random\ effects\ correlation}\ (r)$)')) +
   annotate(geom = "label", x = 0, y = 0.1, label = "LKJ(6)", size = pts(9)) +
   xlim(-1, 1) +
   theme_donors(prior = TRUE)
