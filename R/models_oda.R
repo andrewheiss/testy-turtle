@@ -5,7 +5,7 @@ oda_setup <- function() {
   
   # Settings
   CHAINS <- 4
-  ITER <- 2000
+  ITER <- 5000
   WARMUP <- 1000
   BAYES_SEED <- 4045  # From random.org
   
@@ -23,8 +23,55 @@ oda_setup <- function() {
                  set_prior("cauchy(0, 1)", class = "sd"),
                  set_prior("lkj(6)", class = "cor"))
   
+  
+  
   return(list(chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED,
               prior_num = prior_num, prior_denom = prior_denom, prior_out = prior_out))
+}
+
+
+# Preliminary models ------------------------------------------------------
+
+f_oda_prelim_time_only_total <- function(dat) {
+  dat <- dat %>% filter(laws)
+  
+  priors <- c(prior(normal(20, 2.5), class = Intercept),
+              prior(normal(0, 2), class = b),
+              prior(exponential(1), class = sigma),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, -2, 1.5), class = Intercept, dpar = hu),
+              prior(student_t(3, 0, 1.5), class = b, dpar = hu))
+  
+  # Technically we could just use sample_prior = "yes" to do both the prior and
+  # posterior sampling simultaneously, but getting the draws out is annoyingly
+  # tricky and doesn't (yet) work with tidybayes
+  # (https://github.com/mjskay/tidybayes/issues/226), so it's easier to just run
+  # two separate models
+  model_prior_only <- brm(
+    bf(total_oda ~ year_c + (1 + year_c | gwcode),
+       hu ~ year_c,
+       decomp = "QR"),
+    data = dat,
+    family = hurdle_lognormal(),
+    prior = priors,
+    sample_prior = "only",
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+  
+  model <- brm(
+    bf(total_oda ~ year_c + (1 + year_c | gwcode),
+       hu ~ year_c,
+       decomp = "QR"),
+    data = dat,
+    family = hurdle_lognormal(),
+    prior = priors,
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+  
+  return(lst(model, priors, model_prior_only))
 }
 
 

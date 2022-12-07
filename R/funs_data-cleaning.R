@@ -1010,6 +1010,9 @@ make_final_data <- function(df) {
     mutate(across(starts_with("prop_ngo"), list(logit = ~car::logit(., adjust = 0.001)))) %>% 
     mutate(across(c(total_oda, oda_contentious_high, oda_contentious_low, oda_us),
                   list(log = ~log1p(.)))) %>% 
+    # Round down the handful of 1s
+    mutate(across(c(prop_contentious, prop_ngo_int, prop_ngo_us, prop_ngo_dom, prop_ngo_foreign),
+                  list(trunc = ~ ifelse(. == 1, 0.99, .)))) %>% 
     group_by(gwcode) %>% 
     # Determine if there was conflict in the past 5 years
     mutate(internal_conflict_past_5 = check_last_k(internal_conflict, 5),
@@ -1038,8 +1041,9 @@ lag_data <- function(df) {
                     barriers_total_new, advocacy_new, entry_new, funding_new,
                     v2xcs_ccsi, v2csreprss,
                     total_oda, total_oda_log, 
-                    prop_contentious, prop_contentious_logit,
+                    prop_contentious, prop_contentious_trunc, prop_contentious_logit,
                     prop_ngo_dom, prop_ngo_foreign, 
+                    prop_ngo_dom_trunc, prop_ngo_foreign_trunc, 
                     prop_ngo_dom_logit, prop_ngo_foreign_logit),
                   list(lag1 = ~lag(., n = 1),
                        lag2 = ~lag(., n = 2)))) %>% 
@@ -1056,13 +1060,16 @@ lag_data <- function(df) {
     # Outcome variables
     mutate(across(c(total_oda, total_oda_log, oda_us, oda_us_log,
                     oda_contentious_low, oda_contentious_high,
-                    prop_contentious, prop_contentious_logit,
+                    prop_contentious, prop_contentious_trunc, prop_contentious_logit,
                     oda_us_ngo_dom, oda_us_ngo_int,
                     prop_ngo_dom, prop_ngo_foreign,
+                    prop_ngo_dom_trunc, prop_ngo_foreign_trunc,
                     prop_ngo_dom_logit, prop_ngo_foreign_logit),
                   list(lead1 = ~lead(., n = 1)))) %>% 
     # Shrink down year (years since 1989, so 1990 = 1; 2012 = 23)
-    mutate(year_small = year - 1989) %>% 
+    # Also center year at 2000, so 1990 = -10; 2012 = 12
+    mutate(year_small = year - 1989,
+           year_c = year - 2000) %>% 
     ungroup()
   
   return(panel_lagged)
