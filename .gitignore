@@ -32,5 +32,6 @@ analysis/output/
 .dropbox
 Icon?
 admin/*
+sandbox/*
 
 /.quarto/
