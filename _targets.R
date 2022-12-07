@@ -48,6 +48,8 @@ set.seed(7305)  # From random.org
 
 tar_option_set(packages = c("tidyverse", "here", "fs", "scales", "withr"))
 
+source("R/graphics.R")
+source("R/misc.R")
 source("R/funs_data-cleaning.R")
 source("R/funs_details.R")
 source("R/funs_models-iptw.R")
@@ -223,6 +225,8 @@ list(
   
   ## Models ----
   ### Models for H1: total aid ----
+  tar_target(m_oda_prelim_time_only_total, f_oda_prelim_time_only_total(country_aid_final)),
+  
   tar_target(m_oda_treatment_total, f_oda_treatment_total(trim_oecd(country_aid_final))),
   tar_target(df_oda_iptw_total, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_total)),
   tar_target(m_oda_outcome_total, f_oda_outcome_total(df_oda_iptw_total)),
@@ -242,8 +246,30 @@ list(
   tar_target(m_oda_treatment_ccsi, f_oda_treatment_ccsi(country_aid_final)),
   tar_target(df_oda_iptw_ccsi, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_ccsi)),
   tar_target(m_oda_outcome_ccsi, f_oda_outcome_ccsi(df_oda_iptw_ccsi)),
-  # 
-  # ### Models for H2: aid contentiousness ----
+
+  ### Models for H2: aid contentiousness ----
+  tar_target(m_purpose_prelim_time_only_total, f_purpose_prelim_time_only_total(country_aid_final)),
+  
+  tar_target(m_purpose_treatment_total, f_purpose_treatment_total(trim_oecd(country_aid_final))),
+  tar_target(df_purpose_iptw_total, create_iptws(trim_oecd(country_aid_final), m_purpose_treatment_total)),
+  tar_target(m_purpose_outcome_total, f_purpose_outcome_total(df_purpose_iptw_total)),
+  
+  tar_target(m_purpose_treatment_advocacy, f_purpose_treatment_advocacy(trim_oecd(country_aid_final))),
+  tar_target(df_purpose_iptw_advocacy, create_iptws(trim_oecd(country_aid_final), m_purpose_treatment_advocacy)),
+  tar_target(m_purpose_outcome_advocacy, f_purpose_outcome_advocacy(df_purpose_iptw_advocacy)),
+  
+  tar_target(m_purpose_treatment_entry, f_purpose_treatment_entry(trim_oecd(country_aid_final))),
+  tar_target(df_purpose_iptw_entry, create_iptws(trim_oecd(country_aid_final), m_purpose_treatment_entry)),
+  tar_target(m_purpose_outcome_entry, f_purpose_outcome_entry(df_purpose_iptw_entry)),
+  
+  tar_target(m_purpose_treatment_funding, f_purpose_treatment_funding(trim_oecd(country_aid_final))),
+  tar_target(df_purpose_iptw_funding, create_iptws(trim_oecd(country_aid_final), m_purpose_treatment_funding)),
+  tar_target(m_purpose_outcome_funding, f_purpose_outcome_funding(df_purpose_iptw_funding)),
+  
+  tar_target(m_purpose_treatment_ccsi, f_purpose_treatment_ccsi(trim_oecd(country_aid_final))),
+  tar_target(df_purpose_iptw_ccsi, create_iptws(trim_oecd(country_aid_final), m_purpose_treatment_ccsi)),
+  tar_target(m_purpose_outcome_ccsi, f_purpose_outcome_ccsi(df_purpose_iptw_ccsi)),
+  
   # tar_target(m_purpose_treatment_total, 
   #            f_purpose_treatment_total(country_aid_final_winsor)),
   # tar_target(df_purpose_iptw_total, 
@@ -361,7 +387,7 @@ list(
              build_modelsummary(lst(m_oda_outcome_ccsi$model_100,
                                     m_oda_outcome_ccsi$model_500,
                                     m_oda_outcome_ccsi$model_1000,
-                                    m_oda_outcome_ccsi$model_5000)))#,
+                                    m_oda_outcome_ccsi$model_5000))),
   # 
   # # H2
   # tar_target(models_tbl_h2_treatment_num,
