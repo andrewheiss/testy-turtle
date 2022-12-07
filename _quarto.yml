@@ -1,0 +1,113 @@
+project:
+  title: "NGO Crackdowns and Foreign Aid"
+  type: website
+  render:
+    # Render all .qmd files
+    - "**/*.qmd"
+    
+    # Don't render anything in the manuscript folder because otherwise all the 
+    # output gets placed in _site/ only, which is annoying. Instead this folder 
+    # needs to be rendered separately, and *before* the overall website project 
+    # (which is doable since this whole build process is orchestrated by targets)
+    - "!manuscript/"
+  resources:
+    # But *do* place the outputs from the manuscript in the rendered site folder
+    - "manuscript/output/*.pdf"
+
+execute:
+  # Re-render only when source changes
+  freeze: auto
+
+bibliography: manuscript/bibliography.bib
+csl: manuscript/csl/chicago-author-date.csl
+
+website:
+  repo-url: "https://github.com/andrewheiss/testy-turtle"
+  repo-actions: [edit, issue]
+
+  page-navigation: true
+
+  navbar:
+    pinned: true
+    background: primary
+    search: true
+    left:
+      - text: "Causal strategy"
+        file: notebook/causal-model.qmd
+      - text: "Data"
+        file: notebook/get-merge-data.qmd
+      - text: "General analysis"
+        file: notebook/general-analysis.qmd
+      - text: "Models"
+        file: notebook/model-details.qmd
+      - text: "Manuscript"
+        file: notebook/manuscript.qmd
+    right:
+      - icon: github
+        aria-label: github
+        href: https://github.com/andrewheiss/testy-turtle
+
+  sidebar:
+    - title: "Models"
+      style: docked
+      background: light
+      contents:
+        - section: "Model background"
+          contents:
+            - notebook/why-hierarchical-models.qmd
+            - notebook/model-tricky-outcomes.qmd
+            - notebook/model-bayesian-iptw.qmd
+        - section: "Actual models"
+          contents:
+            - notebook/model-details.qmd
+            - notebook/models_total-aid.qmd
+            - notebook/models_aid-contentiousness.qmd
+            - notebook/models_aid-recipients.qmd
+    
+    - title: "Causal strategy"
+      contents:
+        - section: "Causal strategy"
+          contents:
+            - notebook/causal-model.qmd
+            - notebook/estimands.qmd
+
+    - title: "Data"
+      contents:
+        - section: "Data"
+          contents:
+            - notebook/get-merge-data.qmd
+            - notebook/targets.qmd
+    
+    - title: "Manuscript"
+      contents:
+        - section: "Manuscript"
+          contents:
+            - notebook/manuscript.qmd
+            - notebook/software-citations.qmd
+        - section: "Miscellaneous"
+          contents:
+            - notebook/design-details.qmd
+
+  page-footer:
+    left: |
+      Content {{< fa brands creative-commons >}} 2017–2023 by Suparna Chaudhry and Andrew Heiss<br>
+      All content licensed under a {{< fa brands creative-commons >}}
+      {{< fa brands creative-commons-by >}} {{< fa brands creative-commons-nc >}}
+      [Creative Commons Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/)
+    right: |
+      Made with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)<br>
+      [View the source at {{< fa brands github >}} GitHub](https://github.com/andrewheiss/testy-turtle)
+
+format:
+  html:
+    theme:
+      - zephyr
+      - notebook/html/custom.scss
+    toc: true
+    toc-location: right
+    code-fold: true
+    code-tools: true
+    highlight-style: monokai
+
+language: 
+  title-block-published: "Date"

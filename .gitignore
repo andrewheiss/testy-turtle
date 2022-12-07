@@ -10,6 +10,7 @@ data/derived_data/
 
 # Targets stuff
 _targets
+_targets.yaml
 
 # Site output
 **/_site/*
@@ -19,6 +20,7 @@ _targets
 **/*_files/*
 **/*_cache/*
 **/model_cache*
+*.log
 
 # Output
 # (ignore for now)
@@ -30,3 +32,5 @@ analysis/output/
 .dropbox
 Icon?
 admin/*
+
+/.quarto/

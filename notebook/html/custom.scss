@@ -1,0 +1,72 @@
+/*-- scss:defaults --*/
+
+
+
+/*-- scss:rules --*/
+
+// Font adjustments
+pre.sourceCode {
+  font-size: 0.8em;
+}
+
+.dt-small {
+  font-size: 70%;
+}
+
+thead th {
+  text-transform: none;
+  font-weight: bold;
+}
+
+// TOC and sidebar stuff
+#TOC {
+  background-color: $light;
+}
+
+#TOC #toc-title {
+  font-weight: bold;
+}
+
+#TOC .toc-actions p {
+  font-size: 0.7em;
+  line-height: 1.4;
+}
+
+.sidebar nav[role="doc-toc"] .toc-actions > div:first-of-type {
+  margin-top: -7px;
+}
+
+.sidebar.margin-sidebar > * {
+  padding: 0.5em 0 0.5em 0.5em;
+}
+
+.sidebar-navigation .sidebar-item-container {
+  //font-size:1.1rem;
+  font-weight: bold;
+  padding-bottom: 0.4rem;
+  font-size: 1rem;
+ }
+
+.sidebar-navigation .sidebar-section .sidebar-item-container {
+  font-weight: normal;
+  padding-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.sidebar-navigation .sidebar-section .sidebar-item,
+.sidebar-navigation .sidebar-item{
+  line-height: 1.2;
+}
+
+div.sidebar-item-container .active {
+  color: $primary;
+}
+
+// Footer stuff
+.nav-footer-left {
+  text-align: left;
+}
+
+.nav-footer-right {
+  text-align: right;
+}
