@@ -74,8 +74,9 @@ here_rel <- function(...) {fs::path_rel(here::here(...))}
 # Pipeline ----------------------------------------------------------------
 list(
   ## Helper functions ----
-  tar_target(plot_funs, here_rel("R", "graphics.R"), format = "file"),
-  tar_target(misc_funs, here_rel("R", "misc.R"), format = "file"),
+  tar_target(graphic_functions, lst(theme_donors, theme_donors_map, 
+                                    set_annotation_fonts, clrs, pts)),
+  tar_target(misc_funs, lst(matrix_from_vector)),
   
   ## Raw data files ----
   tar_target(chaudhry_raw_file,
