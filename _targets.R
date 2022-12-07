@@ -424,6 +424,13 @@ list(
   # ## Analysis notebook ----
   # tar_notebook_pages()
   
+  tar_target(softbib_exclude, c("base", "tools", "rstudioapi", "bookdown", 
+                                "mgcv", "pingr", "rlang", "shiny", "shinybusy", 
+                                "shinyWidgets", "withr")),
+  tar_target(softbib_keys, softbib::softbib(output = NULL, exclude = softbib_exclude)),
+  tar_target(softbib_bib, softbib::softbib(output = "softbib.bib", 
+                                           output_dir = here_rel("notebook")))#,
+  
   # This is only here to trigger a re-build of the R Markdown website's
   # supporting files in `_site`, which copies the files in `output` to
   # `_site/output`. I unfortunately haven't found a way to make it so that the
