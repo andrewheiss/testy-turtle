@@ -23,7 +23,7 @@ theme_donors <- function(base_size = 11, base_family = "Inter", prior = FALSE) {
           panel.border = element_rect(color = "grey50", fill = NA, linewidth = 0.15),
           panel.spacing = unit(1, "lines"),
           panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(size = 0.25, colour = "grey90"),
+          panel.grid.major = element_line(linewidth = 0.25, colour = "grey90"),
           axis.line = element_blank(),
           axis.ticks = element_blank(),
           axis.title = element_text(size = rel(0.8),
