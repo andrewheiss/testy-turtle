@@ -9,5 +9,4 @@ format:
         collapse: true
         dev: "ragg_png"
         dpi: 300
-        out.width: "100%"
         fig.align: center
