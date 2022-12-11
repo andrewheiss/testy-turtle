@@ -1172,21 +1172,18 @@ performance::variance_decomposition(m_oda_prelim_time_only_total$model)
 
 # Zero-inflated models (proportions)
 
+Our different proportion variables also have a substantial number of zeros:
 
-Proportion of contentious aid
+::: {.panel-tabset}
+## Proportion of contentious aid
 
-Proportion of aid to type of NGO
-
-https://www.andrewheiss.com/blog/2021/11/08/beta-regression-guide/
-
-
-TODO: Plot of outcomes over time like in my blog post, or just a few in facets
-
-```{r plot-all-prop-contentious}
+```{r plot-all-prop-contentious, fig.width=6, fig.height=3.5}
+#| out-width: 80%
 df_country_aid_laws %>% 
   mutate(prop_contentious = ifelse(prop_contentious == 0, -0.05, prop_contentious)) %>% 
-  ggplot(aes(x = year, y = prop_contentious, group = country)) +
-  geom_line(linewidth = 0.2, alpha = 0.5) +
+  ggplot(aes(x = year, y = prop_contentious)) +
+  geom_line(aes(group = country), linewidth = 0.075, alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = clrs$Prism[8], linewidth = 1.25) +
   geom_hline(yintercept = 0.001) +
   scale_y_continuous(labels = c("Exactly 0%", ">0%", "25%", "50%", "75%", "100%"), 
                      breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
@@ -1194,11 +1191,16 @@ df_country_aid_laws %>%
   theme_donors()
 ```
 
-```{r plot-all-prop-ngo-domestic}
+## Proportion of aid to domestic NGOs
+
+```{r plot-all-prop-ngo-domestic, fig.width=6, fig.height=3.5}
+#| out-width: 80%
 df_country_aid_laws %>% 
+  filter(year >= 2000) %>% 
   mutate(prop_ngo_dom = ifelse(prop_ngo_dom == 0, -0.05, prop_ngo_dom)) %>% 
-  ggplot(aes(x = year, y = prop_ngo_dom, group = country)) +
-  geom_line(linewidth = 0.1, alpha = 0.5) +
+  ggplot(aes(x = year, y = prop_ngo_dom)) +
+  geom_line(aes(group = country), linewidth = 0.075, alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = clrs$Prism[8], linewidth = 1.25) +
   geom_hline(yintercept = 0.001) +
   scale_y_continuous(labels = c("Exactly 0%", ">0%", "25%", "50%", "75%", "100%"), 
                      breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
@@ -1206,20 +1208,61 @@ df_country_aid_laws %>%
   theme_donors()
 ```
 
-```{r plot-all-prop-ngo-foreign}
+## Proportion of aid to foreign NGOs
+
+```{r plot-all-prop-ngo-foreign, fig.width=6, fig.height=3.5}
+#| out-width: 80%
 df_country_aid_laws %>% 
+  filter(year >= 2000) %>% 
   mutate(prop_ngo_foreign = ifelse(prop_ngo_foreign == 0, -0.05, prop_ngo_foreign)) %>% 
-  ggplot(aes(x = year, y = prop_ngo_foreign, group = country)) +
-  geom_line(linewidth = 0.1, alpha = 0.5) +
+  ggplot(aes(x = year, y = prop_ngo_foreign)) +
+  geom_line(aes(group = country), linewidth = 0.075, alpha = 0.5) +
+  stat_summary(geom = "line", fun = "mean", color = clrs$Prism[8], linewidth = 1.25) +
   geom_hline(yintercept = 0.001) +
   scale_y_continuous(labels = c("Exactly 0%", ">0%", "25%", "50%", "75%", "100%"), 
                      breaks = c(-0.05, 0.001, 0.25, 0.5, 0.75, 1)) +
   labs(x = NULL, y = "Proportion of aid to foreign NGOs", color = NULL) +
   theme_donors()
 ```
+:::
+
+As with total aid, we're not entirely sure what the underlying zero inflation process looks like for the different proportion variables we care about. For the proportion of contentious aid there's a definite parabolic time trend, similar to what we saw with the hurdled model of ODA. 
+
+```{r plot-prop-zero-zi, fig.width=6, fig.height=3.5}
+#| out-width: 80%
+df_country_aid_laws %>% 
+  group_by(year) %>% 
+  summarize(prop_zero = mean(prop_contentious == 0)) %>% 
+  ggplot(aes(x = year, y = prop_zero)) +
+  geom_line(linewidth = 0.5, color = "grey70") +
+  geom_point(size = 1) + 
+  geom_smooth(aes(color = "y = x"), method = "lm", 
+              formula = y ~ x, se = FALSE) +
+  geom_smooth(aes(color = "y = x + x<sup>2</sup>"), method = "lm", 
+              formula = y ~ x + I(x^2), se = FALSE) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_color_manual(values = clrs$Prism[c(3, 11)]) +
+  labs(x = NULL, y = "Proportion of countries with zero contentious aid",
+       color = NULL) +
+  theme_donors() +
+  theme(legend.text = element_markdown())
+```
+
 
 
 ## Formal statistical model
+
+To account for this underlying zero-inflation process, we'll use a [zero-inflated beta family](https://www.andrewheiss.com/blog/2021/11/08/beta-regression-guide/) with a multilevel hierarchical model with country-specific intercepts and a year trend with country-specific offsets (again [following best practices for working with panel data with multilevel models](https://www.andrewheiss.com/blog/2021/12/01/multilevel-models-panel-data-guide/)). Earlier we didn't include any polynomials to make it easier to interpret things. Here, for the sake of practice and illustration, we *will* add a squared term for year. As before, we center the year at 2000, and we'll just look at the effect of year on contentious aid, since this is just a general illustration of how to work with these models.
+
+In {brms}'s [random effects syntax](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification), the model formula looks like this:
+
+```{r example-brms-zi, eval=FALSE}
+#| code-fold: show
+bf(prop_contentious ~ year_c + (1 + year_c | gwcode),
+   zi ~ year_c + I(year_c^2))
+```
+
+@eq-zibeta-baseline shows this in more formal mathematical notation, with all the different random effects offsets and priors all working together simultaneously:
 
 ::: {.column-page-inset-right}
 
@@ -1229,7 +1272,7 @@ $$
 \text{Proportion}_{it_j} &\sim \operatorname{Zero-inflated\, Beta}(\pi_{it}, \mu_{it_j}, \phi_y) \\
 \\
 & \textbf{Models for distribution parameters} \\
-\operatorname{logit}(\pi_{it}) &= \gamma_0 + \gamma_1 \text{Year}_{it} & \text{Zero/not-zero process} \\[4pt]
+\operatorname{logit}(\pi_{it}) &= \gamma_0 + \gamma_1 \text{Year}_{it} + \gamma_2 \text{Year}^2_{it} & \text{Zero/not-zero process} \\[4pt]
 \operatorname{logit}(\mu_{it_j}) &= (\beta_0 + b_{0_j}) + (\beta_1 + b_{1_j}) \text{Year}_{it_j} & \text{Within-country variation} \\[4pt]
 \left(
   \begin{array}{c} 
@@ -1256,7 +1299,7 @@ $$
 \\
 & \textbf{Priors} \\
 \gamma_0 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for intercept in hurdle model} \\
-\gamma_1 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for year effect in hurdle model} \\
+\gamma_1, \gamma_2 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for year effect in hurdle model} \\
 \beta_0 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for global average proportion} \\
 \beta_1 &\sim \text{Student $t$}(3, 0, 1.5) & \text{Prior for global year effect} \\
 \phi_y &\sim \operatorname{Exponential}(1) & \text{Prior for within-country variability} \\
@@ -1270,9 +1313,85 @@ $$ {#eq-zibeta-baseline}
 
 ## Prior simulation
 
-## Posterior analysis
+For this year-and-country-only model, we set the following priors:
+
+
+## Posterior checks
+
+### MCMC diagnostics
+
+::: {.panel-tabset}
+
+#### Trace plots
+
+```{r plot-zi-trace, warning=FALSE}
+#| out-width: 80%
+m_purpose_prelim_time_only_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
+  ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
+  geom_line(size = 0.1) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors()
+```
+
+#### Trank plots
+
+```{r plot-zi-trank, warning=FALSE}
+#| out-width: 80%
+m_purpose_prelim_time_only_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
+  group_by(.variable) %>% 
+  mutate(draw_rank = rank(.value)) %>% 
+  ggplot(aes(x = draw_rank, color = factor(.chain))) +
+  stat_bin(geom = "step", binwidth = 500, position = position_identity(), boundary = 0) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors() +
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
+```
+
+#### MCMC duration
+
+```{r duration-zi}
+#| code-fold: show
+rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit)
+
+rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit) %>% 
+  as.data.frame() %>% 
+  summarize(longest = lubridate::as.duration(max(warmup + sample)))
+```
+
+:::
+
+### Posterior predictive check
+
+```{r plot-pp-check-zi, message=FALSE}
+#| out-width: 80%
+withr::with_seed(1234, {
+  pp_check(m_purpose_prelim_time_only_total$model, ndraws = 20) +
+    labs(x = "Percent of contentious aid", 
+         title = "Zero-inflated beta model posterior predictive check") +
+    scale_x_continuous(labels = label_percent()) +
+    theme_donors()
+})
+```
+
+
+## Analyzing the posterior
+
+
+
+### Non-zero-inflated vs. zero-inflated parts (µ vs. π)
+
+#### Zero part (π and γs)
+
+#### Non-zero part (µ ~~and βs~~)
+
+#### Combined processes (*y*)
 
 ```{r plot-baseline-zi-all-parts, fig.width=6, fig.height=9, warning=FALSE}
+#| out-width: 80%
 p1 <- m_purpose_prelim_time_only_total$model %>% 
   epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
               re_formula = NA) %>% 
@@ -1284,7 +1403,7 @@ p1 <- m_purpose_prelim_time_only_total$model %>%
   coord_cartesian(ylim = c(0, 0.16)) +
   guides(fill = "none") +
   labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
-       subtitle = "Predicted global average proportion of contentious aid, both µ and zi") +
+       subtitle = "Predicted global average proportion of contentious aid, both µ and π") +
   theme_donors()
 
 p2 <- m_purpose_prelim_time_only_total$model %>% 
@@ -1313,86 +1432,34 @@ p3 <- m_purpose_prelim_time_only_total$model %>%
   scale_fill_manual(values = clrs$Emrld[2:4]) +
   guides(fill = "none") +
   labs(x = NULL, y = "Predicted proportion of\ncountries with 0% contentious aid",
-       subtitle = "Predicted global proportion of countries receiving no contentious aid, zi only") +
+       subtitle = "Predicted global proportion of countries receiving no contentious aid, π only") +
   theme_donors()
 
-(p1 / p2 / p3) +
+(p3 / p2 / p1) +
   plot_annotation(title = "Conditional effect of time on proportion of contentious aid",
-                  subtitle = "prop_contentious ~ year + (1 + year | country)\nzi ~ year",
+                  subtitle = "prop_contentious ~ year + (1 + year | country)\nzi ~ year + I(year^2)",
                   theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
                                 plot.subtitle = element_text(family = "Inconsolata")))
 ```
 
-## MCMC diagnostics
 
-::: {.panel-tabset}
+### Global analysis (βs)
 
-### Trace plots
+#### Conditional effects
 
-```{r plot-zi-trace, warning=FALSE}
-#| out-width: 80%
-m_purpose_prelim_time_only_total$model %>% 
-  gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
-  ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
-  geom_line(size = 0.1) +
-  scale_color_manual(values = clrs$Sunset[3:6]) +
-  facet_wrap(vars(.variable), scales = "free_y") +
-  theme_donors()
-```
+#### Marginal effects
 
-### Trank plots
+##### Average / marginalize / integrate across existing random effects
 
-```{r plot-zi-trank, warning=FALSE}
-#| out-width: 80%
-m_purpose_prelim_time_only_total$model %>% 
-  gather_draws(`^b_.*|^sd_.*|^cor_.*|^phi`, regex = TRUE) %>% 
-  group_by(.variable) %>% 
-  mutate(draw_rank = rank(.value)) %>% 
-  ggplot(aes(x = draw_rank, color = factor(.chain))) +
-  stat_bin(geom = "step", binwidth = 500, position = position_identity(), boundary = 0) +
-  scale_color_manual(values = clrs$Sunset[3:6]) +
-  facet_wrap(vars(.variable), scales = "free_y") +
-  theme_donors() +
-  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
-```
+##### Integrate out random effects
 
-### MCMC duration
-
-```{r duration-zi}
-#| code-fold: show
-rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit)
-
-rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit) %>% 
-  as.data.frame() %>% 
-  summarize(longest = lubridate::as.duration(max(warmup + sample)))
-```
-
-:::
+##### Comparing the two
 
 
-## Results
-
-## Posterior predictive check
-
-```{r plot-pp-check-zi, message=FALSE}
-#| out-width: 80%
-withr::with_seed(1234, {
-  pp_check(m_purpose_prelim_time_only_total$model, ndraws = 20) +
-    labs(x = "Percent of contentious aid", 
-         title = "Zero-inflated beta model posterior predictive check") +
-    scale_x_continuous(labels = label_percent()) +
-    theme_donors()
-})
-```
+### Country-specific analysis (*b* offsets and ρ)
 
 
-## Analyzing the posterior
-
-### Global analysis
-
-### Country-specific analysis
-
-### Within- and between-country variability
+### Within- and between-country variability (σs)
 
 
 ## References
