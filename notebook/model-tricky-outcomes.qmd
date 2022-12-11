@@ -293,7 +293,7 @@ We're not entirely sure what the actual underlying zero process is for foreign a
 
 We can see the year-based differences in the presence/absence of 0s in this plot here, with a few countries highlighted to show possible trajectories over time: Georgia starting with 0s then rising to regular levels of aid; Trinidad and Tobago starting with regular levels of aid and then dropping to 0s; Estonia starting with regular levels of aid and then dropping to 0, then resuming aid, then dropping to 0s again.
 
-```{r plot-oda-over-time-highlight, warning=FALSE}
+```{r plot-oda-over-time-highlight, warning=FALSE, fig.width=7, fig.height=4}
 #| out-width: 80%
 df_hurdle_highlight <- df_country_aid_laws %>% 
   mutate(highlight_country = ifelse(country %in% c("Estonia", "Georgia", "Trinidad & Tobago"), 
@@ -315,6 +315,29 @@ df_hurdle_highlight %>%
   theme_donors()
 ```
 
+The time trend is even clearer if we plot the proportion of zeros in each year. It actually fits a 2nd-degree polynomial trend really well, but for the sake of simplicity in this example, we'll just model it as linear and not include a squared term. In our actual models, we use year² in the hurdle part of the model.
+
+```{r plot-prop-zero-hu, fig.width=6, fig.height=3.5}
+#| out-width: 80%
+df_country_aid_laws %>% 
+  group_by(year) %>% 
+  summarize(prop_zero = mean(total_oda == 0)) %>% 
+  ggplot(aes(x = year, y = prop_zero)) +
+  geom_line(linewidth = 0.5, color = "grey70") +
+  geom_point(size = 1) + 
+  geom_smooth(aes(color = "y = x"), method = "lm", 
+              formula = y ~ x, se = FALSE) +
+  geom_smooth(aes(color = "y = x + x<sup>2</sup>"), method = "lm", 
+              formula = y ~ x + I(x^2), se = FALSE) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_color_manual(values = clrs$Prism[c(3, 11)]) +
+  labs(x = NULL, y = "Proportion of countries with zero ODA",
+       color = NULL) +
+  theme_donors() +
+  theme(legend.text = element_markdown())
+```
+
+
 ## Formal statistical model
 
 To account for these dips into 0, we'll use a hurdle lognormal family (since ODA is exponentially distributed) with a multilevel hierarchical model with country-specific intercepts and a year trend with country-specific offsets (following yet another guide I wrote for this project, [this one on multilevel panel data](https://www.andrewheiss.com/blog/2021/12/01/multilevel-models-panel-data-guide/)). 
@@ -323,7 +346,7 @@ We center the year at 2000 so that (1) the intercept is interpretable [@Schielze
 
 In the actual models we run we include treatment history, independent variables related to civil society, and inverse probability weights, but here since we're just exploring the mechanics of multilevel hurdle models, we use just a country-and-year-only model.
 
-In **brms**'s [random effects syntax](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification), the model formula looks like this:
+In {brms}'s [random effects syntax](https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification), the model formula looks like this:
 
 ```{r example-brms-hurdle, eval=FALSE}
 #| code-fold: show
@@ -919,6 +942,7 @@ Instead of looking at the effect of year **in an average country** (or the *cond
 $$
 \frac{\textbf{E}(\text{ODA}_{i_j} \mid \text{Year} = t + \varepsilon) - \textbf{E}(\text{ODA}_{i_j} \mid \text{Year} = t)}{\varepsilon}
 $$
+
 The nomenclature here is absolutely maddening. 
 
 We just used the `marginaleffects()` function to find the instantaneous slopes for our conditional effects up above, but that kind of slope-based marginal effect is unrelated to the all-countries-on-average-marginal-effect-that-is-not-a-conditional-average-country-effect effect. We use `marginaleffects()` to find both. The only difference is that for *conditional* marginal effects, we set `re_formula = NA` to make the country offsets zero; for *marginal* marginal effects, we'll set `re_formula = NULL` to include the country offsets, and we do some simulation-based trickery to average over or integrate out those offsets.
