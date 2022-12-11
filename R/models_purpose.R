@@ -43,7 +43,7 @@ f_purpose_prelim_time_only_total <- function(dat) {
   
   model <- brm(
     bf(prop_contentious_trunc ~ year_c + (1 + year_c | gwcode),
-       zi ~ year_c,
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
     data = dat,
     family = zero_inflated_beta(),
