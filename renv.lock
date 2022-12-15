@@ -4,7 +4,11 @@
     "Repositories": [
       {
         "Name": "CRAN",
-        "URL": "https://cran.rstudio.com"
+        "URL": "https://cloud.r-project.org"
+      },
+      {
+        "Name": "cmdstanr",
+        "URL": "https://mc-stan.org/r-packages"
       }
     ]
   },
@@ -61,10 +65,10 @@
     },
     "HDInterval": {
       "Package": "HDInterval",
-      "Version": "0.2.2",
+      "Version": "0.2.4",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "3b986a53325a1d95610b8d86a284dac0",
+      "Hash": "b5b77433b286dd869ff33ee7fd5c545f",
       "Requirements": []
     },
     "Hmisc": {
@@ -335,6 +339,16 @@
       "Requirements": [
         "datawizard",
         "insight"
+      ]
+    },
+    "bibtex": {
+      "Package": "bibtex",
+      "Version": "0.5.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "29fcec18cbab0a51605d78b5bfdd311a",
+      "Requirements": [
+        "backports"
       ]
     },
     "bit": {
@@ -655,7 +669,8 @@
     "cmdstanr": {
       "Package": "cmdstanr",
       "Version": "0.5.3",
-      "Source": "unknown",
+      "Source": "Repository",
+      "Repository": "cmdstanr",
       "Hash": "c91c8643a5d25fb7aebb1e8031f6cdca",
       "Requirements": [
         "R6",
@@ -957,19 +972,6 @@
         "rlang"
       ]
     },
-    "emmeans": {
-      "Package": "emmeans",
-      "Version": "1.8.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "3a14b5ca2d720bae9e10a6c572378208",
-      "Requirements": [
-        "estimability",
-        "mvtnorm",
-        "numDeriv",
-        "xtable"
-      ]
-    },
     "emoji": {
       "Package": "emoji",
       "Version": "15.0",
@@ -981,14 +983,6 @@
         "stringr",
         "tibble"
       ]
-    },
-    "estimability": {
-      "Package": "estimability",
-      "Version": "1.4.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "1a78288c1188772070240b89ffe33579",
-      "Requirements": []
     },
     "evaluate": {
       "Package": "evaluate",
@@ -1182,10 +1176,15 @@
     },
     "ggdist": {
       "Package": "ggdist",
-      "Version": "3.2.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "da5ae53a708eb6f8d2f9ec6acd188fd9",
+      "Version": "3.2.0.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "ggdist",
+      "RemoteUsername": "mjskay",
+      "RemoteRef": "dev",
+      "RemoteSha": "91867fb32adcf5077499211977e0eda5d8b7b7a0",
+      "Hash": "c827ff57200344d67bef82ebf59c60b4",
       "Requirements": [
         "HDInterval",
         "distributional",
@@ -1223,6 +1222,22 @@
         "tweenr",
         "vctrs",
         "withr"
+      ]
+    },
+    "ggh4x": {
+      "Package": "ggh4x",
+      "Version": "0.2.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "12a9567dfa0194970dde0a3089bd7efe",
+      "Requirements": [
+        "cli",
+        "ggplot2",
+        "gtable",
+        "lifecycle",
+        "rlang",
+        "scales",
+        "vctrs"
       ]
     },
     "ggplot2": {
@@ -1296,6 +1311,19 @@
         "ggplot2",
         "scales",
         "withr"
+      ]
+    },
+    "ggtext": {
+      "Package": "ggtext",
+      "Version": "0.1.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c5ba8f5056487403a299b91984be86ca",
+      "Requirements": [
+        "ggplot2",
+        "gridtext",
+        "rlang",
+        "scales"
       ]
     },
     "globals": {
@@ -1382,6 +1410,23 @@
       "Hash": "7d7f283939f563670a697165b2cf5560",
       "Requirements": [
         "gtable"
+      ]
+    },
+    "gridtext": {
+      "Package": "gridtext",
+      "Version": "0.1.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "05e4f5fffb1eecfeaac9ea0b7f255fef",
+      "Requirements": [
+        "Rcpp",
+        "curl",
+        "jpeg",
+        "markdown",
+        "png",
+        "rlang",
+        "stringr",
+        "xml2"
       ]
     },
     "gt": {
@@ -1654,10 +1699,15 @@
     },
     "kableExtra": {
       "Package": "kableExtra",
-      "Version": "1.3.4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "49b625e6aabe4c5f091f5850aba8ff78",
+      "Version": "1.3.4.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "kableExtra",
+      "RemoteUsername": "haozhu233",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "292f60715959ea952ff25a8aedfd782793b15f7b",
+      "Hash": "1431414cc4a62b0ec90f1d08401fdd19",
       "Requirements": [
         "digest",
         "glue",
@@ -1677,10 +1727,10 @@
     },
     "knitr": {
       "Package": "knitr",
-      "Version": "1.40",
+      "Version": "1.41",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "caea8b0f899a0b1738444b9bc47067e7",
+      "Hash": "6d4971f3610e75220534a1befe81bc92",
       "Requirements": [
         "evaluate",
         "highr",
@@ -1817,6 +1867,19 @@
       "Repository": "CRAN",
       "Hash": "7ce2733a9826b3aeb1775d56fd305472",
       "Requirements": []
+    },
+    "marginaleffects": {
+      "Package": "marginaleffects",
+      "Version": "0.8.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "531239b6c725978c7c8f10fd754105a9",
+      "Requirements": [
+        "checkmate",
+        "data.table",
+        "generics",
+        "insight"
+      ]
     },
     "markdown": {
       "Package": "markdown",
@@ -2325,6 +2388,17 @@
       "Hash": "5e3c5dc0b071b21fa128676560dbe94d",
       "Requirements": []
     },
+    "rcartocolor": {
+      "Package": "rcartocolor",
+      "Version": "2.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "42b5652d8d7b5583710edca989450c2f",
+      "Requirements": [
+        "ggplot2",
+        "scales"
+      ]
+    },
     "readr": {
       "Package": "readr",
       "Version": "2.1.3",
@@ -2548,10 +2622,10 @@
     },
     "sass": {
       "Package": "sass",
-      "Version": "0.4.2",
+      "Version": "0.4.4",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "1b191143d7d3444d504277843f3a95fe",
+      "Hash": "c76cbac7ca04ce82d8c38e29729987a3",
       "Requirements": [
         "R6",
         "fs",
@@ -2719,6 +2793,24 @@
         "stringr"
       ]
     },
+    "softbib": {
+      "Package": "softbib",
+      "Version": "0.0.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "softbib",
+      "RemoteUsername": "vincentarelbundock",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "a270a9e53ca1becaa5d06940f7e5842b2d4fb6e9",
+      "Hash": "6cd60eac63b6825b379dd5f1dfe6f6ed",
+      "Requirements": [
+        "bibtex",
+        "checkmate",
+        "renv",
+        "rmarkdown"
+      ]
+    },
     "sourcetools": {
       "Package": "sourcetools",
       "Version": "0.1.7",
@@ -2749,14 +2841,18 @@
     },
     "stringr": {
       "Package": "stringr",
-      "Version": "1.4.1",
+      "Version": "1.5.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "a66ad12140cd34d4f9dfcc19e84fc2a5",
+      "Hash": "671a4d384ae9d32fc47a14e98bfa3dc8",
       "Requirements": [
+        "cli",
         "glue",
+        "lifecycle",
         "magrittr",
-        "stringi"
+        "rlang",
+        "stringi",
+        "vctrs"
       ]
     },
     "survival": {
@@ -3128,10 +3224,10 @@
     },
     "vctrs": {
       "Package": "vctrs",
-      "Version": "0.5.0",
+      "Version": "0.5.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "001fd6a5ebfff8316baf9fb2b5516dc9",
+      "Hash": "970324f6572b4fd81db507b5d4062cb0",
       "Requirements": [
         "cli",
         "glue",
@@ -3270,10 +3366,10 @@
     },
     "xfun": {
       "Package": "xfun",
-      "Version": "0.34",
+      "Version": "0.35",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "9eba2411b0b1f879797141bd24df7407",
+      "Hash": "f576593107bdf9aa7db48ef75a8c05fb",
       "Requirements": []
     },
     "xml2": {
