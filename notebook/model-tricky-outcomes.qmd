@@ -1242,7 +1242,7 @@ df_country_aid_laws %>%
               formula = y ~ x + I(x^2), se = FALSE) +
   scale_y_continuous(labels = label_percent()) +
   scale_color_manual(values = clrs$Prism[c(3, 11)]) +
-  labs(x = NULL, y = "Proportion of countries with zero contentious aid",
+  labs(x = NULL, y = "Proportion of countries\nwith zero contentious aid",
        color = NULL) +
   theme_donors() +
   theme(legend.text = element_markdown())
@@ -1459,7 +1459,7 @@ p3 <- m_purpose_prelim_time_only_total$model %>%
 ### Country-specific analysis (*b* offsets and ρ)
 
 
-### Within- and between-country variability (σs)
+### Within- and between-country variability (φ and σs)
 
 
 ## References
