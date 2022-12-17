@@ -23,6 +23,7 @@ library(ggh4x)
 library(kableExtra)
 library(broom.mixed)
 library(marginaleffects)
+library(extraDistr)
 
 set.seed(1234)
 
@@ -110,7 +111,7 @@ plot_dist_logged <- df_country_aid_laws %>%
 (plot_dist_unlogged | plot_dist_logged) +
   plot_layout(guides = "collect") +
   plot_annotation(title = "ODA, original vs. logged",
-                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                  theme = theme(plot.title = element_text(family = "Inter", face = "bold"),
                                 legend.position = "bottom"))
 ```
 
@@ -170,7 +171,7 @@ p3 <- df_country_aid_laws %>%
 (p1 | p2 | p3) +
   plot_layout(guides = "collect") +
   plot_annotation(title = "Proportion-based outcomes",
-                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                  theme = theme(plot.title = element_text(family = "Inter", face = "bold"),
                                 legend.position = "bottom"))
 ```
 
@@ -540,7 +541,7 @@ get_variables(m_oda_prelim_time_only_total$model)
 - 142 country-specific offsets to the `year_c` slope: $b_{1_j}$
 - 2 global terms (intercept and `year_c`) for the $\mu$ part of the model: $\beta_0$ and $\beta_1$
 - 2 global terms (intercept and `year_c`) for the hurdled $\pi$ part of the model: $\gamma_0$ and $\gamma_1$
-- The within-country $\sigma$ for the $\mu$ part of the model: $\sigma_y$
+- The overall within-country $\sigma$: $\sigma_y$
 - The variability in country-specific intercept and slope offsets: $\sigma^2_0$ and $\sigma^2_1$
 - The correlation between country-specific slopes and intercepts: $\rho$
 - 8 auxiliary Stan-specific things like `lprior`, `n_leapfrog__`, `energy__`, etc.
@@ -669,8 +670,6 @@ yearMu <- round(hu_coefs$year_c$estimate, 3)
 
 The intercept here shows that the predicted average level of ODA in 2000 is $e^{`r interceptMu`}$, or `r label_dollar()(hu_coefs$intercept$estimate_exp)`. The year effect on the log scale is hard to think about, but if we exponentiate it like $e^{`r yearMu`}$, we get `r hu_coefs$year_c$estimate_exp`, which is a multiplier effect like an odds ratio: ODA increases by `r label_percent(accuracy = 0.1)(hu_coefs$year_c$estimate_exp - 1)` each year.
 
-We can see what this looks like with actual dollar amounts by using `linpred_draws(transform = TRUE)`. This will calculate predicted values from the $\operatorname{logit}(\pi_{it})$ part of the model
-
 We can instead look at predictions from the model using `linpred_draws(transform = TRUE)`. This will calculate predicted values from the $\log (\mu_{it_j})$ part of the model. With `transform = FALSE`, it will return log-scale values; with `transform = TRUE`, it will return dollar-scale values. We could technically include `dpar = "mu"` to specify that we want values from the $\mu$ part of the model, but that's also just the default, so there's no need. 
 
 The predicted value in 2000 is `r label_dollar()(hu_coefs$intercept$estimate_exp)`, like we found earlier. The line goes up, as expected. We *could* use {marginaleffects} to find the exact slope at a variety of locations along that line, but we'll skip that for now because doing that requires more nuance, given the multilevel nature of the model ([more on that below!](#global-analysis-βs-and-γs))
@@ -701,7 +700,7 @@ $$
 \text{Foreign aid}_{it_j} \sim \operatorname{Hurdle\,log-normal}(\pi_{it}, \mu_{it_j}, \sigma_y)
 $$
 
-We can work with both of these parts simultaneously if we `epred_draws()` instead of `linpred_draws()`, which calculates the expectation (the "e" in epred) of the posterior predictive distribution of the outcome, or $\textbf{E}(\text{Foreign aid}_{it_j})$.
+We can work with both of these parts simultaneously if we use `epred_draws()` instead of `linpred_draws()`, which calculates the expectation (the "e" in epred) of the posterior predictive distribution of the outcome, or $\textbf{E}(\text{Foreign aid}_{it_j})$.
 
 The plot of epred values is different from the linear predictor we found with the $\mu$ part only—that's because we're now also incorporating the zero/non-zero process. In general the whole line is shift up higher—instead of ≈\$400 million in 2000, we now see ≈\$600ish million. The slope of the line is also a little wonky and dampened in later years—this is because the probability of zero aid is higher after 2005.
 
@@ -722,14 +721,14 @@ plot_hu_epred <- m_oda_prelim_time_only_total$model %>%
 plot_hu_epred
 ```
 
-Here's what all three of these plots look like simultanously (just the $\pi$ hurdling part, just the $\mu$ non-hurdled part, and the combined epred part):
+Here's what all three of these plots look like simultaneously (just the $\pi$ hurdling part, just the $\mu$ non-hurdled part, and the combined epred part):
 
 ```{r plot-hu-all-parts, fig.width=6, fig.height=9, warning=FALSE}
 #| out-width: 80%
 (plot_hu_hu / plot_hu_mu_linpred / plot_hu_epred) +
   plot_annotation(title = "Conditional effect of time on foreign aid",
                   subtitle = "total_aid ~ year + (1 + year | country)\nhu ~ year",
-                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                  theme = theme(plot.title = element_text(family = "Inter", face = "bold"),
                                 plot.subtitle = element_text(family = "Inconsolata")))
 ```
 
@@ -930,7 +929,7 @@ p3 <- mfx_dollar_hu %>%
 
 (p1 | p2 | p3) + 
   plot_annotation(title = "Conditional effect of year on ODA for a typical country",
-                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold")))
+                  theme = theme(plot.title = element_text(family = "Inter", face = "bold")))
 ```
 
 Again, these are all conditional effects, which means that they represent the effect of year **for a typical country**, or a country where all the country-specific offsets are 0.
@@ -1147,7 +1146,7 @@ Finally, we can look at all the $\sigma$ terms. We have three to work with:
 - $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_hu$sd_intercept$estimate, 2)`, which means that across or between countries, total ODA varies by 1.5 logged units.
 - $\sigma_1$ (`sd__year_c` for the `gwcode` group): the variability between countries' year effects, or the variability around the $b_{1_j}$ offsets. Here it's `r round(sigmas_hu$sd_year_c$estimate, 2)`, which means that average year effects vary by 8ish% across or between countries.
 
-```{r show-sigmas-hu}
+```{r show-sigmas-hu, warning=FALSE}
 #| code-fold: show
 m_oda_prelim_time_only_total$model %>% 
   tidy(effects = "ran_pars") %>% 
@@ -1315,6 +1314,52 @@ $$ {#eq-zibeta-baseline}
 
 For this year-and-country-only model, we set the following priors:
 
+```{r plot-zi-priors, fig.width=7, fig.height=5.5}
+#| out-width: 80%
+design <- "
+  AAABBB
+  CCCDDD
+  EEFFGG
+"
+
+m_purpose_prelim_time_only_total$priors %>% 
+  parse_dist() %>% 
+  # K = dimension of correlation matrix; 
+  # ours is 2x2 here because we have one random slope
+  marginalize_lkjcorr(K = 2) %>%
+  mutate(nice_title = glue::glue("**{class}**: {prior}"),
+         stage = ifelse(dpar == "zi", "Zero-inflated part (π)", "Beta part (µ and φ)")) %>% 
+  mutate(nice_title = fct_inorder(nice_title),
+         stage = fct_rev(fct_inorder(stage))) %>% 
+  ggplot(aes(y = 0, dist = .dist, args = .args, fill = prior)) +
+  stat_slab(normalize = "panels") +
+  scale_fill_manual(values = clrs$Prism[c(1, 2, 5)]) +
+  facet_manual(vars(stage, nice_title), design = design, scales = "free_x",
+               strip = strip_nested(background_x = list(element_rect(fill = "grey92"), NULL),
+                                    by_layer_x = TRUE)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = NULL) +
+  theme_donors(prior = TRUE) +
+  theme(strip.text = element_markdown())
+```
+
+As we did with the hurdle model, we'll simulate from the prior distributions to make sure these are reasonable-ish. These are kind of neat. Some simulated countries have a good range of contentious aid over time; others jump between 0% and 100% pretty rapidly (which also happens in the real data). These priors are fine enough.
+
+```{r prior-simulations-zi}
+#| out-width: 85%
+df_country_aid_laws %>%  
+  add_epred_draws(m_purpose_prelim_time_only_total$model_prior_only, ndraws = 9,
+                  seed = 12345) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .epred, group = paste(gwcode, .draw))) +
+  geom_line(linewidth = 0.15, color = clrs$Prism[8]) +
+  scale_y_continuous(labels = label_percent()) +
+  facet_wrap(vars(.draw)) +
+  labs(x = "Year", y = "Percent of contentious aid", title = "Results sampled from prior only",
+       subtitle = "Each panel shows plausible aid-year relationships for 142 simulated countries") +
+  theme_donors()
+```
+
 
 ## Posterior checks
 
@@ -1366,6 +1411,8 @@ rstan::get_elapsed_time(m_purpose_prelim_time_only_total$model$fit) %>%
 
 ### Posterior predictive check
 
+It's so beautiful!
+
 ```{r plot-pp-check-zi, message=FALSE}
 #| out-width: 80%
 withr::with_seed(1234, {
@@ -1380,48 +1427,78 @@ withr::with_seed(1234, {
 
 ## Analyzing the posterior
 
+Though we only really care about one effect here, we actually have a ton of different parameters to work with—301!
+
+```{r get-vars-zi}
+#| code-fold: true
+#| code-summary: Show the full list of 301 things
+get_variables(m_purpose_prelim_time_only_total$model)
+```
+
+- 142 country-specific intercept offsets: $b_{0_j}$
+- 142 country-specific offsets to the `year_c` slope: $b_{1_j}$
+- 2 global terms (intercept and `year_c`) for the $\mu$ part of the model: $\beta_0$ and $\beta_1$
+- 3 global terms (intercept, `year_c`, and `year_c_E2`) for the zero-inflated $\pi$ part of the model: $\gamma_0$ and $\gamma_1$
+- The overall within-country $\phi$: $\phi_y$
+- The variability in country-specific intercept and slope offsets: $\sigma^2_0$ and $\sigma^2_1$
+- The correlation between country-specific slopes and intercepts: $\rho$
+- 8 auxiliary Stan-specific things like `lprior`, `n_leapfrog__`, `energy__`, etc.
+
+```{r show-zi-coefs}
+#| code-fold: show
+m_purpose_prelim_time_only_total$model
+```
+
+As we did with the hurdle model previously, we'll walk through all these different population-level (or global within-country) effects, group level (between-country) effects, and within- and between-country variability. We'll also look at effects at each part of the model—the regular part that models $\mu$ and the zero-inflated part that models $\pi$.
 
 
 ### Non-zero-inflated vs. zero-inflated parts (µ vs. π)
 
+Like the hurdled model, we have three different parts of the model to work with:
+
+$$
+\begin{aligned}
+\text{Proportion}_{it_j} &\sim \operatorname{Zero-inflated\, Beta}(\pi_{it}, \mu_{it_j}, \phi_y) & \text{Proportion} \\
+\operatorname{logit}(\pi_{it}) &= \gamma_0 + \gamma_1 \text{Year}_{it} + \gamma_2 \text{Year}^2_{it} & \text{on/off process} \\
+\operatorname{logit}(\mu_{it_j}) &= (\beta_0 + b_{0_j}) + (\beta_1 + b_{1_j}) \text{Year}_{it_j} & \text{$\geq 0$ process}
+\end{aligned}
+$$
+
+And like we did with the hurdle model previously (and like [I illustrate in my guide here](https://www.andrewheiss.com/blog/2022/09/26/guide-visualizing-types-posteriors/)), we can use different combinations of `linpred_draws()`, `epred_draws()`, and `predicted_draws()` to explore different aspects of these parts' posterior distributions.
+
 #### Zero part (π and γs)
 
-#### Non-zero part (µ ~~and βs~~)
+First we'll look at the on/off process, or $\operatorname{logit}(\pi_{it})$. This is conceptually different from the hurdle process, which predicts if an outcome is 0 or not 0. With zero-inflation, we're predicting if the data-generating process is on or not—but the data-generating process can still result in 0s, theoretically. Recall the monk example from *Statistical Rethinking* [mentioned above](#hurdle-vs.-zero-inflated-models)—monks could transcribe 0 manuscripts because the whole transcription process is "off" and they do no work, or they could transcribe 0 manuscripts because they work really really slowly or are lazy, etc.
 
-#### Combined processes (*y*)
+In this part of model, we used year and year², so we have a $\gamma_0$ coefficient for the intercept and $\gamma_1$ and $\gamma_2$ coefficients for the year effect. Theese are on the logit scale, so exponentiating them will give us an odds ratio, while inverse logit-ing them with `plogis()` will give us probabilities. 
 
-```{r plot-baseline-zi-all-parts, fig.width=6, fig.height=9, warning=FALSE}
+Importantly, because we're working with polynomials, we can't really just interpret the $\gamma_1$ and $\gamma_2$ year coefficients—they move together and influence the year effect simultaneously. They lead to a non-linear slope across the range of possible years. To see the year effect, then, we need to look at partial derivatives or marginal effects.
+
+```{r zi-extract-coefs, include=FALSE}
+zi_coefs <- m_purpose_prelim_time_only_total$model %>% 
+  tidy(effects = "fixed") %>% 
+  mutate(term = janitor::make_clean_names(term)) %>% 
+  mutate(across(c(estimate, conf.low, conf.high), list(exp = ~exp(.)))) %>% 
+  split(~term)
+```
+
+Here are the zero-inflated coefficients as log odds. We won't exponentiate them because (1) an exponentiated value doesn't make sense for an intercept, and (2) there are two year coefficients that work together, so we can't interpret just one of the values.
+
+```{r zi-zi-logit-exp, warning=FALSE}
+#| code-fold: show
+# Uninterpretable log odds
+m_purpose_prelim_time_only_total$model %>% 
+  tidy(effects = "fixed") %>% 
+  filter(component == "zi")
+```
+
+To make the log odds intercept value (`r round(zi_coefs$intercept$estimate, 2)`)  more interpretable, we can convert it to a probability with $\frac{e^{\gamma_0}}{1 + e^{\gamma_0}}$, or `plogis()`, which is `r round(plogis(zi_coefs$intercept$estimate), 4)`, which means that in the year 2000 (i.e. when `year_c` is 0), the model predicts that `r label_percent(accuracy = 0.1)(plogis(zi_coefs$intercept$estimate))` of countries received 0 contentious aid. 
+
+We can confirm with a plot, which also helps set the stage for interpreting the year effect. In 2000 the predicted proportion is indeed `r label_percent(accuracy = 0.1)(plogis(zi_coefs$intercept$estimate))`.
+
+```{r plot-prop-zeros-over-time-zi, fig.width=6, fig.height=4}
 #| out-width: 80%
-p1 <- m_purpose_prelim_time_only_total$model %>% 
-  epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
-              re_formula = NA) %>% 
-  mutate(year = year_c + 2000) %>% 
-  ggplot(aes(x = year, y = .epred)) +
-  stat_lineribbon(color = clrs$Peach[7], alpha = 0.3) +
-  scale_y_continuous(labels = label_percent()) +
-  scale_fill_manual(values = clrs$Peach[3:5]) +
-  coord_cartesian(ylim = c(0, 0.16)) +
-  guides(fill = "none") +
-  labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
-       subtitle = "Predicted global average proportion of contentious aid, both µ and π") +
-  theme_donors()
-
-p2 <- m_purpose_prelim_time_only_total$model %>% 
-  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
-                re_formula = NA, dpar = "mu") %>% 
-  mutate(.linpred = plogis(.linpred)) %>% 
-  mutate(year = year_c + 2000) %>% 
-  ggplot(aes(x = year, y = .linpred)) +
-  stat_lineribbon(color = clrs$PurpOr[7], alpha = 0.3) +
-  scale_y_continuous(labels = label_percent()) +
-  scale_fill_manual(values = clrs$PurpOr[3:5]) +
-  coord_cartesian(ylim = c(0, 0.16)) +
-  guides(fill = "none") +
-  labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
-       subtitle = "Predicted global average proportion of contentious aid, µ only") +
-  theme_donors()
-
-p3 <- m_purpose_prelim_time_only_total$model %>% 
+plot_zi_zi <- m_purpose_prelim_time_only_total$model %>% 
   linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
                 re_formula = NA,
                 dpar = "zi", transform = TRUE) %>% 
@@ -1431,35 +1508,558 @@ p3 <- m_purpose_prelim_time_only_total$model %>%
   scale_y_continuous(labels = label_percent()) +
   scale_fill_manual(values = clrs$Emrld[2:4]) +
   guides(fill = "none") +
-  labs(x = NULL, y = "Predicted proportion of\ncountries with 0% contentious aid",
-       subtitle = "Predicted global proportion of countries receiving no contentious aid, π only") +
+  labs(x = NULL, y = "Predicted proportion\nof countries receiving\n0% contentious aid",
+       subtitle = "Predicted global proportion of countries receiving 0% contentious aid, π only") +
   theme_donors()
 
-(p3 / p2 / p1) +
+plot_zi_zi_lines <- plot_zi_zi +
+  geom_vline(xintercept = c(1992, 2000, 2010),
+             linewidth = 0.25, linetype = "21")
+
+plot_actual_zeros <- df_country_aid_laws %>% 
+  group_by(year) %>% 
+  summarize(prop_zero = sum(prop_contentious == 0) / n()) %>% 
+  ggplot(aes(x = year, y = prop_zero)) + 
+  geom_line(color = clrs$Emrld[5], linewidth = 1) +
+  scale_y_continuous(labels = label_percent()) +
+  labs(x = NULL, y = "Actual proportion of\ncountries receiving\n0% contentious aid",
+       subtitle = "Actual global proportion of countries receiving 0% contentious aid") +
+  theme_donors()
+
+(plot_zi_zi_lines / plot_actual_zeros) &
+  coord_cartesian(ylim = c(0, 0.45))
+```
+
+For the year effect, we need to look at the slope of the line at different years, since it changes across time. As seen in the plot, pre-2002ish, it's a negative effect; after 2002ish, it's positive.
+
+```{r zi-extract-zi-mfx, include=FALSE}
+zi_zi_mfx <- m_purpose_prelim_time_only_total$model %>% 
+  marginaleffects(newdata = datagrid(year_c = c(-8, 0, 10)),
+                  dpar = "zi") %>% 
+  mutate(year = 2000 + year_c) %>% 
+  mutate(year_text = janitor::make_clean_names(year)) %>% 
+  split(~year_text)
+```
+
+```{r show-zi-zi-mfx}
+#| code-fold: show
+m_purpose_prelim_time_only_total$model %>% 
+  marginaleffects(newdata = datagrid(year_c = c(-8, 0, 10)),
+                  dpar = "zi") %>% 
+  mutate(year = year_c + 2000) %>% 
+  select(type, year_c, year, dydx, conf.low, conf.high, predicted)
+```
+
+More precisely, in 1992 the year effect is `r round(zi_zi_mfx$x1992$dydx, 4)`, which means that one additional year is associated with a `r abs(zi_zi_mfx$x1992$dydx) * 100` percentage point decrease in the proportion of 0s, on average. In 2000, there is a tiny `r abs(zi_zi_mfx$x2000$dydx) * 100` percentage point decrease, while in 2010 there is a more substantial `r abs(zi_zi_mfx$x2010$dydx) * 100` increase in the proportion of 0s.
+
+#### Non-zero part (µ ~~and βs~~)
+
+Next we'll look at the part of the model that predicts what happens when the data-generating process is on (i.e. the monks are for sure working, so how many manuscripts will they transcribe?), or $\operatorname{logit}(\mu_{it_j})$. In this part of model, we only used year, so we have a $\beta_0$ coefficient for the intercept and a $\beta_1$ coefficient for the year effect. Since this is a beta model, the coefficients are on the logit scale, so we can exponentiate them or inverse logit them to make them more interpretable. As with the hurdle model example, *technically* we can't interpret these $\beta$ coefficients directly because of the random effects, but we'll pretend we can just for fun.
+
+```{r zi-mu-log-exp, warning=FALSE}
+#| code-fold: show
+# Log odds
+# Uninterpretable log odds
+m_purpose_prelim_time_only_total$model %>% 
+  tidy(effects = "fixed") %>% 
+  filter(component != "zi")
+
+# Exponentiated
+m_purpose_prelim_time_only_total$model %>% 
+  tidy(effects = "fixed") %>% 
+  filter(component != "zi") %>% 
+  mutate(across(c(estimate, conf.low, conf.high), exp))
+```
+
+The intercept is nonsensical both as log odds and when exponentiated, but if we inverse logit its log odds with `plogis()`, we get `r plogis(zi_coefs$intercept$estimate)`, which means that in 2000, the predicted average proportion of contentious aid is `r label_percent(accuracy = 0.01)(plogis(zi_coefs$intercept$estimate))`. 
+
+The exponentiated year effect is `r zi_coefs$year_c_2$estimate_exp`, which means that a one-year increase in time increases the likelihood of receiving additional contentious aid by `r label_percent(accuracy = 0.01)(zi_coefs$year_c_2$estimate_exp - 1)`. BUT that's (1) weird to think about as "receiving additional contentious aid", and (2) wrong because of the multilevel nature of the model. So we won't actually put much stock in these $\beta$ coefficients alone and save the more substantive interpretation of the year effect for the next section in this guide on conditional and marginal effects.
+
+Instead of thinking about percent changes and log odds, we can look at predictions on the percentage point scale, which is far more intuitive. We can extract predictions from the $\operatorname{logit}(\mu_{it_j})$ part of the model with `linpred_draws()`. As before, with `transform = FALSE` we'll get logit-scale values; with `transform = TRUE` we'll get percentage points.
+
+The predicted value in 2000 is `r label_percent(accuracy = 0.01)(plogis(zi_coefs$intercept$estimate))`, as expected. The line goes up every year, also as expected. We don't know how much it goes up at each year yet—we're purposely holding off on finding the year effect until later so we can find conditional and marginal effects.
+
+```{r plot-zi-linpred, fig.width=6, fig.height=2.75}
+#| out-width: 80%
+plot_zi_mu_linpred <- m_purpose_prelim_time_only_total$model %>% 
+  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+                re_formula = NA, dpar = "mu") %>% 
+  mutate(.linpred = exp(.linpred)) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .linpred)) +
+  stat_lineribbon(color = clrs$PurpOr[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$PurpOr[3:5]) +
+  coord_cartesian(ylim = c(0, 0.20)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
+       subtitle = "Predicted global average proportion of contentious aid, µ only") +
+  theme_donors()
+plot_zi_mu_linpred
+```
+
+#### Combined processes (*y*)
+
+Finally, we can look at both parts of the model simultaneously. The outcome is a function of both the $\pi$ part and the $\mu$ part:
+
+$$
+\text{Proportion}_{it_j} \sim \operatorname{Zero-inflated\, Beta}(\pi_{it}, \mu_{it_j}, \phi_y)
+$$
+We can work with both of these parts at the same time if we `epred_draws()` instead of `linpred_draws()`, which calculates the expectation (the "e" in epred) of the posterior predictive distribution of the outcome, or $\textbf{E}(\text{Proportion}_{it_j})$.
+
+The plot of epred values is different from the linear predictor we found with the $\mu$ part only—that's because we're now also incorporating the on/off process. This is actually really pretty neat! The epred values are lower than the linpred values in earlier years, since there's a higher proportion of 0s in the $\pi$ part of the model then. Similarly, the epred trend flattens out completely after 2010 because the high proportion of 0s from $\pi$ balances out the the year effect in $\mu$. Magical mixture models!
+
+```{r plot-zi-epred, fig.width=6, fig.height=2.75}
+#| out-width: 80%
+plot_zi_epred <- m_purpose_prelim_time_only_total$model %>% 
+  epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+              re_formula = NA) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7], alpha = 0.3) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Peach[3:5]) +
+  coord_cartesian(ylim = c(0, 0.20)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted percentage of\ncontentious aid",
+       subtitle = "Predicted global average proportion of contentious aid, both µ and π") +
+  theme_donors()
+plot_zi_epred
+```
+
+Here's what all three of these plots look like at the same time—just the $\pi$ zero-inflated is-the-system-on-or-off part, just the $\mu$ when-the-system-is-on part, and the combined epred part:
+
+```{r plot-zi-all-parts, fig.width=6, fig.height=9, warning=FALSE}
+#| out-width: 80%
+(plot_zi_zi / plot_zi_mu_linpred / plot_zi_epred) +
   plot_annotation(title = "Conditional effect of time on proportion of contentious aid",
                   subtitle = "prop_contentious ~ year + (1 + year | country)\nzi ~ year + I(year^2)",
-                  theme = theme(plot.title = element_text(family = "Noto Sans", face = "bold"),
+                  theme = theme(plot.title = element_text(family = "Inter", face = "bold"),
                                 plot.subtitle = element_text(family = "Inconsolata")))
 ```
 
-
 ### Global analysis (βs)
+
+We just looked at the intercept and year effect above, but as with the hurdle models, these are technically incorrect because we used a multilevel model and haven't dealt with the $b_{0_j}$ $b_{1_j}$ offsets in the intercept and slope.
+
+Instead, we need to look at a specific flavor of statistical effect or estimand—one of these:
+
+- **Conditional effect = average country**: All $b_n$ offsets are set to 0 so that the effects or coefficients represent the effect in a typical country with the global average level of a variable.
+- **Marginal effect = countries on average**: All $b_n$ offsets are dealt with mathematically (averaged/marginalized out or integrated out) so that the effects or coefficients represent the effect of a variable across all countries on average.
+
+Again, we're generally more interested in conditional effects, but we'll look at both here just for reference.
 
 #### Conditional effects
 
+The effect we care about here is the instantaneous slope/partial derivative of year. Rather than figure out the formal calculus for that, we'll use `marginaleffects()` to calculate the numerical derivative, which finds the predicted value of $Y$ at some value of $X$, finds the predicted value of $Y$ at some value of $X$ plus a tiny bit ($\varepsilon$ here), subtracts them, and divides by $\varepsilon$. For our situation here, it looks like this mess:
+
+$$
+\frac{\textbf{E}(\text{Proportion}_{i_j} \mid \{b_{0_j}, b_{0_j}\} = 0, \text{Year} = t + \varepsilon) - \textbf{E}(\text{Proportion}_{i_j} \mid \{b_{0_j}, b_{0_j}\} = 0, \text{Year} = t)}{\varepsilon}
+$$
+
+Again, {brms}'s syntax for $\{b_{0_j}, b_{0_j}\} = 0$ (i.e. setting all the random offsets to zero) is to use `re_formula = NA` in the different functions that generate predictions.
+
+To see what this estimand looks like, it's helpful to first look at range of predicted values of the proportion of contentious aid so we can see what line we're finding the slope for. To help with the intuition we'll look at the plots on both the link (logid) scale and the back-transformed response (percentage point) scale.
+
+We can do this automatically with `marginaleffects::plot_cap()`:
+
+```{r plot-cap-conditional-example-zi, eval=FALSE}
+#| code-fold: show
+# Log scale
+plot_cap(m_purpose_prelim_time_only_total$model, 
+         condition = "year_c", type = "link", 
+         re_formula = NA)
+
+# Dollar scale
+plot_cap(m_purpose_prelim_time_only_total$model, 
+         condition = "year_c", type = "response", 
+         re_formula = NA)
+```
+
+Or more manually with `epred_draws()`:
+
+```{r plot-zi-conditional-predictions, fig.width=8, fig.height=3.5}
+#| column: page-inset-right
+#| out-width: 90%
+preds_logit_zi <- m_purpose_prelim_time_only_total$model %>% 
+  linpred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+                re_formula = NA) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .linpred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted proportion of\ncontentious foreign aid, logit scale") +
+  theme_donors()
+
+preds_prop_zi <- m_purpose_prelim_time_only_total$model %>% 
+  epred_draws(newdata = tibble(year_c = seq(-10, 13, 1)),
+              re_formula = NA) %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted proportion of\ncontentious foreign aid") +
+  theme_donors()
+
+preds_logit_zi | preds_prop_zi
+```
+
+The slopes of both of these lines are actually fairly straight. On the log scale, the slope is constant and linear; on the dollar scale, the slope is generally pretty constant, though it starts to think about leveling out a tiny bit after 2010 because of the increased probability of 0s.
+
+We can use `marginaleffects()` to get the exact slope of those lines at any value of `year_c` that we want, and we can plot those slopes across the whole range of years. On the logit scale, the line is flat, since the slope is constant; on the proportion scale, it is generally flat until right after 2005 when it takes a sharp downturn, representing the flattening of the curve. Note that the logit-scale conditional effect is flat, while the proportion scale effect is all weird and drops off quickly. In theory these two plots should look the same. The difference is because {marginaleffects} uses epred values when you specify `type = "response"`, which means that the proportion-scale conditional effect incorporates the zero-process. When we specify `type = "link"`, we get logit-scale effects, but those **don't** incorporate the zero process because {marginaleffects} uses linpred values.
+
+```{r calculate-conditional-mfx-zi, cache=TRUE}
+mfx_logit_zi <- marginaleffects(
+  m_purpose_prelim_time_only_total$model, 
+  newdata = datagrid(year_c = seq(-10, 13, by = 1)),
+  variables = "year_c",
+  type = "link",
+  re_formula = NA
+)
+
+mfx_prop_zi <- marginaleffects(
+  m_purpose_prelim_time_only_total$model, 
+  newdata = datagrid(year_c = seq(-10, 13, by = 1)),
+  variables = "year_c",
+  type = "response",
+  re_formula = NA
+)
+```
+
+```{r plot-zi-conditional-mfx, fig.width=8, fig.height=3.5}
+#| column: page-inset-right
+#| out-width: 90%
+plot_mfx_logit_zi <- mfx_logit_zi %>% 
+  posteriordraws() %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = exp(draw))) +
+  stat_lineribbon(color = clrs$PurpOr[7]) +
+  scale_fill_manual(values = clrs$PurpOr[1:3]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Conditional effect (logit)") +
+  theme_donors()
+
+plot_mfx_prop_zi <- mfx_prop_zi %>% 
+  posteriordraws() %>% 
+  mutate(year = year_c + 2000) %>% 
+  ggplot(aes(x = year, y = draw)) +
+  stat_lineribbon(color = clrs$PurpOr[7]) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$PurpOr[1:3]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Conditional effect (percentage points)") +
+  theme_donors()
+
+plot_mfx_logit_zi | plot_mfx_prop_zi
+```
+
+To help even more with the intuition, here are the exact slopes (or conditional effects) at 1990, 2000, 2010, and 2012, both on the logit scale and the percentage point (pp) scale:
+
+```{r show-conditional-mfx-specific-years-zi}
+#| code-fold: show
+mfx_logit_zi_small <- mfx_logit_zi %>% 
+  filter(year_c %in% c(-10, 0, 10, 12)) %>% 
+  mutate(year = 2000 + year_c) %>% 
+  select(year, dydx, conf.low, conf.high)
+
+mfx_prop_zi_small <- mfx_prop_zi %>% 
+  filter(year_c %in% c(-10, 0, 10, 12)) %>% 
+  mutate(year = 2000 + year_c) %>% 
+  select(year, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_number(scale = 100, suffix = " pp.")(.)))
+
+mfx_logit_zi_small
+mfx_prop_zi_small
+```
+
+```{r split-conditional-mfx-zi, include=FALSE}
+m_mfx_logit_zi_small <- mfx_logit_zi_small %>% 
+  mutate(year = janitor::make_clean_names(year)) %>% 
+  split(~year)
+
+m_prop_zi_small <- mfx_prop_zi_small %>% 
+  mutate(year = janitor::make_clean_names(year)) %>% 
+  split(~year)
+```
+
+Interpretation time. We can look at these effects a few different ways. On the logit scale, a one-year increase in time is associated with a `r m_mfx_logit_zi_small$x1990$dydx` increase in the proportion of contentious aid. Exponentiated beta-model effects also don't make a lot of sense (a `r label_percent(accuracy = 0.1)(m_mfx_logit_zi_small$x1990$dydx_exp - 1)` increase in the likelihood of some increase in the proportion? idk). 
+
+Working with the proportion/percentage point scale is a lot easier—though it varies across time. In 1990 the conditional effect of a one-year increase in time is `r m_prop_zi_small$x1990$dydx` of contentious aid, while in 2000 it is `r m_prop_zi_small$x2000$dydx` and in the flatland of 2012 it is `r m_prop_zi_small$x2012$dydx`. 
+
+For fun, here are the posteriors of these different conditional effects:
+
+```{r plot-zi-conditional-mfx-all, fig.width=8, fig.height=3.5}
+#| column: page-inset-right
+#| out-width: 90%
+p1 <- mfx_logit_zi %>% 
+  posteriordraws() %>% 
+  filter(year_c == 0) %>% 
+  ggplot(aes(x = draw)) +
+  stat_halfeye(fill = clrs$PurpOr[5]) +
+  labs(x = "Conditional effect of year on the\nproportion of contentious aid, logit scale", 
+       y = NULL, subtitle = "Logit scale", fill = NULL) +
+  theme_donors()
+
+p2 <- mfx_prop_zi %>% 
+  posteriordraws() %>% 
+  filter(year_c %in% c(-10, 0, 10)) %>% 
+  mutate(year = year_c + 2000) %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(year))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_number(scale = 100, suffix = " pp.")) +
+  scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
+  labs(x = "Conditional effect of year on the\nproportion of contentious aid, percentage points", 
+       y = NULL, subtitle = "Proportion / percentage point scale", fill = NULL) +
+  theme_donors()
+
+(p1 | p2) + 
+  plot_annotation(title = "Conditional effect of year on proportion of contentious aid for a typical country",
+                  theme = theme(plot.title = element_text(family = "Inter", face = "bold")))
+```
+
+Again, these are all conditional effects, which means that they represent the effect of year **for a typical country**, or a country where all the country-specific offsets are 0.
+
 #### Marginal effects
+
+Instead of looking at the effect of year **in an average country** (or the *conditional effect*) by setting $\{b_{0_j}, b_{0_j}\} = 0$, we can look at the effect of year **in all countries on average** (or the *marginal effect*) by mathematically incorporating information about all countries' random offsets. Because we're working with a continuous treatment, our estimand is an instantaneous slope, which we calculate with the same numerical derivative approach we used earlier for the conditional effects (i.e. the difference between the effect when year is set to something and when year is set to something + a tiny amount ($\varepsilon$), divided by $\varepsilon$):
+
+$$
+\frac{\textbf{E}(\text{Proportion}_{i_j} \mid \text{Year} = t + \varepsilon) - \textbf{E}(\text{Proportion}_{i_j} \mid \text{Year} = t)}{\varepsilon}
+$$
+
+We can do this with `marginaleffects()` by setting `re_formula = NULL` instead of `re_formula = NA`.
 
 ##### Average / marginalize / integrate across existing random effects
 
+The first way to deal with the country-specific offsets is to average (or marginalize or integrate across—all of these mean the same thing) all the existing random effects. In practice this means calculating the instantaneous slope of `year_c` in each of the countries, then collapsing those estimates into one average.
+
+```{r calculate-marginal-zi-averaged-across}
+#| code-fold: show
+mfx_logit_marginal_zi <- marginaleffects(
+  m_purpose_prelim_time_only_total$model, 
+  newdata = datagrid(gwcode = unique),
+  variables = "year_c",
+  type = "link",
+  re_formula = NULL
+)
+```
+
+```{r show-marginal-zi-averaged-across}
+#| code-fold: show
+mfx_logit_marginal_zi %>% tidy()
+```
+
 ##### Integrate out random effects
+
+The second way to deal with the random effects is to invent a bunch of hypothetical countries that all have different simulated country-specific offsets based on the distributions of $\sigma_0$ and $\sigma_1$, and then calculate the instantaneous slope in each of those fake countries, *and then* collapse those country-specific slopes into one average. This is the equivalent of *integrating out* the random effects. Here we'll invent 200 fake countries:
+
+```{r calculate-marginal-zi-integrated-out, cache=TRUE}
+#| code-fold: show
+mfx_logit_marginal_zi_int <- marginaleffects(
+  m_purpose_prelim_time_only_total$model, 
+  variables = "year_c",
+  newdata = datagrid(gwcode = c(-1:-200)),
+  re_formula = NULL,
+  allow_new_levels = TRUE,
+  sample_new_levels = "gaussian",
+  type = "link"
+)
+```
+
+```{r show-marginal-zi-integrated-out}
+#| code-fold: show
+mfx_logit_marginal_zi_int %>% tidy()
+```
 
 ##### Comparing the two
 
+As with the hurdle model, since we have so many countries (142 real ones vs. 200 fake ones), the estimates are basically the same. If we were working with fewer real countries, the estimates from the average / marginalize / integrate across approach would be less accurate.
+
+While the posterior means are the same, the integrating out approach has a little more uncertainty associated with it:
+
+```{r plot-marginal-mfx-both-zi}
+#| out-width: 80%
+data_marginal_zi <- mfx_logit_marginal_zi %>% 
+  posteriordraws() %>% 
+  group_by(type, term, drawid) %>% 
+  summarize(draw = mean(draw))
+
+data_int_zi <- mfx_logit_marginal_zi_int %>% 
+  posteriordraws() %>% 
+  group_by(type, term, drawid) %>% 
+  summarize(draw = mean(draw))
+
+plot_marginal_zi_mfx_both <- ggplot(mapping = aes(x = draw)) +
+  stat_halfeye(data = data_int_zi, aes(fill = "Integrated out")) +
+  stat_halfeye(data = data_marginal_zi, aes(fill = "Averaged across"), 
+               slab_color = "white", slab_linewidth = 0.5) +
+  scale_fill_manual(values = clrs$Peach[c(2, 5)]) +
+  # coord_cartesian(xlim = c(1, 1.06)) +
+  labs(x = "Marginal effect of year on\nproportion of contentious aid, logit scale", y = NULL,
+       fill = "Random effect marginalizing method",
+       title = "Marginal marginal effects",
+       subtitle = "Effect of year on proportion of contentious aid across all countries on average") +
+  theme_donors()
+plot_marginal_zi_mfx_both
+```
 
 ### Country-specific analysis (*b* offsets and ρ)
 
+There are 142 different countries, each with their own intercept offsets and slope offsets, so I won't plot them here. We can look at the first few of these different country-specific offsets to help with the intuition. Each country's random effects are $b_0$ and $b_1$. These offsets get added to the global averages $\beta_0$ and $\beta_1$, giving each country its own unique slope and intercept.
+
+```{r show-country-offsets-zi, warning=FALSE}
+#| code-fold: show
+m_purpose_prelim_time_only_total$model %>%  
+  spread_draws(b_Intercept, b_year_c, r_gwcode[gwcode, term]) %>%  
+  pivot_wider(names_from = "term", values_from = r_gwcode) %>%  
+  mutate(country_intercept = b_Intercept + Intercept,
+         country_year_slope = b_year_c + year_c) %>%  
+  group_by(gwcode) %>%  
+  summarize(across(c(b_Intercept, Intercept, country_intercept, 
+                     b_year_c, year_c, country_year_slope), 
+                   ~median(.))) %>% 
+  rename(`β0` = b_Intercept, `b0 offset` = Intercept, 
+         `Intercept` = country_intercept,
+         `β1` = b_year_c, `b1 offset` = year_c,
+         `Year slope` = country_year_slope)
+```
+
+We can make a spaghetti plot of these country-specific offsets on the percentage point scale:
+
+```{r calculate-country-lines-zi, cache=TRUE}
+all_country_lines_zi <- m_purpose_prelim_time_only_total$model %>%  
+  epred_draws(expand_grid(gwcode = unique(df_country_aid_laws$gwcode),
+                            year_c = seq(-10, 13, by = 1))) %>%  
+  group_by(gwcode, year_c) %>%  
+  median_qi(.epred) %>%  
+  mutate(year = year_c + 2000)
+```
+
+```{r plot-country-lines-zi, fig.width=5, fig.height=3.5}
+#| out-width: 60%
+all_country_lines_zi %>% 
+  ggplot(aes(x = year, y = .epred)) +
+  geom_line(aes(group = gwcode),
+            color = clrs$Prism[1], linewidth = 0.15) +
+  scale_y_continuous(labels = label_percent()) +
+  # scale_y_continuous(trans = log_trans(),
+  #                    labels = label_math(e^.x, format = log)) +
+  labs(x = NULL, y = "Proportion of contentious aid") +
+  theme_donors()
+```
+
+Due to the magic of multilevel models, these intercept and slope offsets are correlated with each other—we modeled the offsets from a multivariate normal distribution, and the correlation between the two $b_{n_j}$ parameters is defined by $\rho_{0, 1}$:
+
+$$
+\left(
+  \begin{array}{c} 
+  b_{0_j} \\
+  b_{1_j}
+  \end{array}
+\right) 
+\sim \text{MV}\,\mathcal{N}
+\left[
+  \left(
+    \begin{array}{c}
+    0 \\
+    0 \\
+    \end{array}
+  \right)
+  , \,
+  \left(
+  \begin{array}{cc}
+     \sigma^2_{0} & {\color{red} \rho_{0, 1}}\, \sigma_{0} \sigma_{1} \\ 
+     \cdots & \sigma^2_{1}
+  \end{array}
+\right)
+\right]
+$$
+
+When $\rho$ is negative, bigger intercepts have smaller slopes; when $\rho$ is positive, bigger intercepts have bigger slopes. With our data, if $\rho$ is big and positive it would imply that countries with higher baseline levels of aid contentiousness would see a larger and steeper year effect. In our actual model, $\rho$ is slightly positive, which is neat:
+
+```{r rho-dist-zi}
+#| out-width: 80%
+m_purpose_prelim_time_only_total$model %>% 
+  spread_draws(cor_gwcode__Intercept__year_c) %>% 
+  ggplot(aes(x = cor_gwcode__Intercept__year_c)) +
+  stat_halfeye(fill = clrs$Prism[2]) +
+  geom_vline(xintercept = 0) +
+  labs(x = "ρ<sub>0, 1</sub>", y = NULL) +
+  theme_donors() +
+  theme(axis.title.x = element_markdown())
+```
+
 
 ### Within- and between-country variability (φ and σs)
+
+```{r extract-sigmas-phi-zi, include=FALSE, warning=FALSE}
+options(scipen = 10)
+
+sigmas_zi <- m_purpose_prelim_time_only_total$model %>% 
+  tidy(parameters = c("sd_*", "phi")) %>% 
+  select(-component) %>% 
+  mutate(term = janitor::make_clean_names(term)) %>% 
+  split(~term)
+
+
+zimuint <- plogis(zi_coefs$intercept$estimate)
+ziphi <- exp(sigmas_zi$phi$estimate)
+```
+
+Finally, we can look at all the terms related to uncertainty. We have three to work with:
+
+- $\phi_y$ (`phi`): the precision or variance of aid contentiousness within countries. On the log scale, it's `r round(sigmas_zi$phi$estimate, 2)`, which is `r round(exp(sigmas_zi$phi$estimate), 0)` when unlogged or exponentiated, which is *really really* precise. To illustrate this, we can look at the distribution of the proportion of contentious aid when `year_c` is 0, or in 2000. Based on just a beta distribution with $\mu$ and $\phi$ (i.e. ignoring the zero-inflated part for now), we have a distribution of $\operatorname{Beta}(`r zimuint`, `r round(ziphi, 0)`)$ which looks like this, very narrowly focused around the baseline average 2000 proportion:
+
+```{r plot-zi-phi, warning=FALSE, indent="  "}
+#| out-width: 90%
+beta_params <- m_purpose_prelim_time_only_total$model %>% 
+  tidy(parameters = c("b_(Intercept)", "phi"))
+
+beta_mu <- beta_params %>% 
+  filter(term == "b_(Intercept)") %>% 
+  pull(estimate)
+
+beta_phi <- beta_params %>% 
+  filter(term == "phi") %>% 
+  pull(estimate)
+
+ggplot() +
+  stat_function(geom = "area", fill = clrs$Prism[7],
+                fun = ~dprop(., mean = plogis(beta_mu), size = exp(beta_phi))) +
+  scale_x_continuous(labels = label_percent(), limits = c(0.06, 0.08)) +
+  labs(title = "Distribution of non-zero-inflated contentious aid in 2000",
+       subtitle = glue::glue("Beta(µ = plogis({round(beta_mu, 2)}), φ = exp({round(beta_phi, 2)})) or Beta(µ = {round(plogis(beta_mu), 3)}, φ = {round(exp(beta_phi), 0)})")) +
+  theme_donors()
+```
+
+- $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_intercept$estimate, 2)`, which means that across or between countries, the proportion of contentious aid by 0.5 logit units.
+
+- $\sigma_1$ (`sd__year_c` for the `gwcode` group): the variability between countries' year effects, or the variability around the $b_{1_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_year_c$estimate, 2)`, which means that average year effects vary by 0.03 logit units across or between countries.
+
+```{r show-sigmas-zi, warning=FALSE}
+#| code-fold: show
+m_purpose_prelim_time_only_total$model %>% 
+  tidy(parameters = c("sd_*", "phi")) %>% 
+  select(-component)
+```
+
+Like the hurdle model, we still can’t get an ICC for the percent of variation explained by between-country differences:
+
+```{r model-prelim-zi-icc-na}
+#| code-fold: show
+performance::icc(m_purpose_prelim_time_only_total$model)
+```
+
+But we can use `performance::variance_decomposition()` to get a comparable number, since it uses the posterior predictive distribution of the model to figure out the between-country variance. Between-country differences explain just 36ish% of the variation in the proportion of contentious aid, meaning that within-country differences (or time-based differences) matter a lot more in this case. That's cool.
+
+```{r model-prelim-icc-zi, cache=TRUE}
+#| code-fold: show
+performance::variance_decomposition(m_purpose_prelim_time_only_total$model)
+```
 
 
 ## References

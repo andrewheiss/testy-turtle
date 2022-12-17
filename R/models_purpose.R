@@ -41,6 +41,19 @@ f_purpose_prelim_time_only_total <- function(dat) {
               prior(student_t(3, 0, 1.5), class = Intercept, dpar = zi),
               prior(student_t(3, 0, 1.5), class = b, dpar = zi))
   
+  model_prior_only <- brm(
+    bf(prop_contentious_trunc ~ year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
+       decomp = "QR"),
+    data = dat,
+    family = zero_inflated_beta(),
+    prior = priors,
+    sample_prior = "only",
+    init = "0",
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
+  )
+  
   model <- brm(
     bf(prop_contentious_trunc ~ year_c + (1 + year_c | gwcode),
        zi ~ year_c + I(year_c^2),
@@ -53,7 +66,7 @@ f_purpose_prelim_time_only_total <- function(dat) {
     warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(lst(model, priors))
+  return(lst(model, priors, model_prior_only))
 }
 
 
