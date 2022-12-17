@@ -5,7 +5,7 @@ project:
   preview: 
     port: 4444
     browser: true
-    watch-inputs: true
+    watch-inputs: false
     navigate: true
 
   execute-dir: project
