@@ -45,7 +45,7 @@ options(contrasts = rep("contr.treatment", 2))
 # We do this by including options() in the functions where we define model
 # priors and other settings (i.e. oda_setup()). But setting options there
 # inside a bunch of files can get tedious, since the number of cores, workers,
-# etc. depends on the computer we run this on (i.e. my 4-core personal laptop
+# etc. depends on the computer we run this on (i.e. my 8-core personal laptop
 # vs. my 16-core work laptop).
 
 # Pass these options to workers using options(worker_options)
@@ -279,41 +279,6 @@ list(
   tar_target(df_purpose_iptw_ccsi, create_iptws(trim_oecd(country_aid_final), m_purpose_treatment_ccsi)),
   tar_target(m_purpose_outcome_ccsi, f_purpose_outcome_ccsi(df_purpose_iptw_ccsi)),
   
-  # tar_target(m_purpose_treatment_total, 
-  #            f_purpose_treatment_total(country_aid_final_winsor)),
-  # tar_target(df_purpose_iptw_total, 
-  #            create_iptws(country_aid_final_winsor, m_purpose_treatment_total)),
-  # tar_target(m_purpose_outcome_total, 
-  #            f_purpose_outcome_total(df_purpose_iptw_total)),
-  # 
-  # tar_target(m_purpose_treatment_advocacy, 
-  #            f_purpose_treatment_advocacy(country_aid_final_winsor)),
-  # tar_target(df_purpose_iptw_advocacy, 
-  #            create_iptws(country_aid_final_winsor, m_purpose_treatment_advocacy)),
-  # tar_target(m_purpose_outcome_advocacy, 
-  #            f_purpose_outcome_advocacy(df_purpose_iptw_advocacy)),
-  # 
-  # tar_target(m_purpose_treatment_entry, 
-  #            f_purpose_treatment_entry(country_aid_final_winsor)),
-  # tar_target(df_purpose_iptw_entry, 
-  #            create_iptws(country_aid_final_winsor, m_purpose_treatment_entry)),
-  # tar_target(m_purpose_outcome_entry, 
-  #            f_purpose_outcome_entry(df_purpose_iptw_entry)),
-  # 
-  # tar_target(m_purpose_treatment_funding, 
-  #            f_purpose_treatment_funding(country_aid_final_winsor)),
-  # tar_target(df_purpose_iptw_funding, 
-  #            create_iptws(country_aid_final_winsor, m_purpose_treatment_funding)),
-  # tar_target(m_purpose_outcome_funding, 
-  #            f_purpose_outcome_funding(df_purpose_iptw_funding)),
-  # 
-  # tar_target(m_purpose_treatment_ccsi, 
-  #            f_purpose_treatment_ccsi(country_aid_final_winsor)),
-  # tar_target(df_purpose_iptw_ccsi, 
-  #            create_iptws(country_aid_final_winsor, m_purpose_treatment_ccsi)),
-  # tar_target(m_purpose_outcome_ccsi, 
-  #            f_purpose_outcome_ccsi(df_purpose_iptw_ccsi)),
-  # 
   # ### Models for H3: aid recipients ----
   # tar_target(m_recip_treatment_total_dom, 
   #            f_recip_treatment_total_dom(country_aid_final_winsor)),

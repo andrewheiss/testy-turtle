@@ -73,9 +73,13 @@ f_purpose_prelim_time_only_total <- function(dat) {
 # Treatment models --------------------------------------------------------
 
 f_purpose_treatment_total <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
   dat <- dat %>% filter(laws)
+  
+  # Numerator model
+  priors_num <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                  prior(student_t(3, 0, 1.5), class = b),
+                  prior(exponential(1), class = sigma),
+                  prior(exponential(1), class = sd))
   
   model_num <- brm(
     bf(barriers_total ~ barriers_total_lag1 + 
@@ -83,12 +87,18 @@ f_purpose_treatment_total <- function(dat) {
        decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_num,
-    control = list(adapt_delta = 0.99),
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_num,
+    control = list(adapt_delta = 0.95),
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
+  
+  # Denominator model
+  priors_denom <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                    prior(student_t(3, 0, 1.5), class = b),
+                    prior(exponential(1), class = sigma),
+                    prior(exponential(1), class = sd),
+                    prior(lkj(2), class = cor))
   
   model_denom <- brm(
     bf(barriers_total ~ barriers_total_lag1 + 
@@ -96,253 +106,319 @@ f_purpose_treatment_total <- function(dat) {
          # Human rights and politics
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          # Economics and development
-         gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
+         gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          # Conflict and disasters
          internal_conflict_past_5 + natural_dis_count +
-         (1 | gwcode)),
+         # Time and country effects
+         year_c + (1 + year_c | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_denom,
-    control = list(adapt_delta = 0.9),
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_denom,
+    control = list(adapt_delta = 0.95),
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(lst(model_num, model_denom))
+  return(lst(model_num, priors_num, model_denom, priors_denom))
 }
 
 f_purpose_treatment_advocacy <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
   dat <- dat %>% filter(laws)
   
+  # Numerator model
+  priors_num <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                  prior(student_t(3, 0, 1.5), class = b),
+                  prior(exponential(1), class = sigma),
+                  prior(exponential(1), class = sd))
+  
   model_num <- brm(
-    bf(advocacy ~ advocacy_lag1 + advocacy_lag2_cumsum + (1 | gwcode)),
+    bf(advocacy ~ advocacy_lag1 + advocacy_lag2_cumsum + (1 | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_num,
-    control = list(adapt_delta = 0.99),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_num,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
+  
+  # Denominator model
+  priors_denom <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                    prior(student_t(3, 0, 1.5), class = b),
+                    prior(exponential(1), class = sigma),
+                    prior(exponential(1), class = sd),
+                    prior(lkj(2), class = cor))
   
   model_denom <- brm(
-    bf(advocacy ~ advocacy_lag1 + 
-         advocacy_lag2_cumsum + prop_contentious_lag1 +
+    bf(advocacy ~ advocacy_lag1 + advocacy_lag2_cumsum + prop_contentious_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
-         gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
+         gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
-         (1 | gwcode)),
+         year_c + (1 + year_c | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_denom,
+    prior = priors_denom,
     control = list(adapt_delta = 0.9),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(lst(model_num, model_denom))
+  return(lst(model_num, priors_num, model_denom, priors_denom))
 }
 
 f_purpose_treatment_entry <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
   dat <- dat %>% filter(laws)
   
+  # Numerator model
+  priors_num <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                  prior(student_t(3, 0, 1.5), class = b),
+                  prior(exponential(1), class = sigma),
+                  prior(exponential(1), class = sd))
+  
   model_num <- brm(
-    bf(entry ~ entry_lag1 + entry_lag2_cumsum + (1 | gwcode)),
+    bf(entry ~ entry_lag1 + entry_lag2_cumsum + (1 | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_num,
-    control = list(adapt_delta = 0.99),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_num,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
+  
+  # Denominator model
+  priors_denom <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                    prior(student_t(3, 0, 1.5), class = b),
+                    prior(exponential(1), class = sigma),
+                    prior(exponential(1), class = sd),
+                    prior(lkj(2), class = cor))
   
   model_denom <- brm(
-    bf(entry ~ entry_lag1 + 
-         entry_lag2_cumsum + prop_contentious_lag1 +
+    bf(entry ~ entry_lag1 + entry_lag2_cumsum + prop_contentious_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
-         gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
+         gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
-         (1 | gwcode)),
+         year_c + (1 + year_c | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_denom,
+    prior = priors_denom,
     control = list(adapt_delta = 0.9),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(lst(model_num, model_denom))
+  return(lst(model_num, priors_num, model_denom, priors_denom))
 }
 
 f_purpose_treatment_funding <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
   dat <- dat %>% filter(laws)
   
+  # Numerator model
+  priors_num <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                  prior(student_t(3, 0, 1.5), class = b),
+                  prior(exponential(1), class = sigma),
+                  prior(exponential(1), class = sd))
+  
   model_num <- brm(
-    bf(funding ~ funding_lag1 + funding_lag2_cumsum + (1 | gwcode)),
+    bf(funding ~ funding_lag1 + funding_lag2_cumsum + (1 | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_num,
-    control = list(adapt_delta = 0.99),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_num,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
+  
+  # Denominator model
+  priors_denom <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                    prior(student_t(3, 0, 1.5), class = b),
+                    prior(exponential(1), class = sigma),
+                    prior(exponential(1), class = sd),
+                    prior(lkj(2), class = cor))
   
   model_denom <- brm(
-    bf(funding ~ funding_lag1 + 
-         funding_lag2_cumsum + prop_contentious_lag1 +
+    bf(funding ~ funding_lag1 + funding_lag2_cumsum + prop_contentious_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
-         gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
+         gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
-         (1 | gwcode)),
+         year_c + (1 + year_c | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_denom,
+    prior = priors_denom,
     control = list(adapt_delta = 0.9),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    chains = bayes_settings$chains, iter = bayes_settings$iter, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(lst(model_num, model_denom))
+  return(lst(model_num, priors_num, model_denom, priors_denom))
 }
 
 f_purpose_treatment_ccsi <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
-  dat <- dat %>% filter(laws)
+  # Numerator model
+  priors_num <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                  prior(student_t(3, 0, 1.5), class = b),
+                  prior(exponential(1), class = sigma),
+                  prior(exponential(1), class = sd))
   
   model_num <- brm(
-    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + v2xcs_ccsi_lag2_cumsum + (1 | gwcode)),
+    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + v2xcs_ccsi_lag2_cumsum + (1 | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_num,
-    control = list(adapt_delta = 0.99),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_num,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
+  
+  # Denominator model
+  priors_denom <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                    prior(student_t(3, 0, 1.5), class = b),
+                    prior(exponential(1), class = sigma),
+                    prior(exponential(1), class = sd),
+                    prior(lkj(2), class = cor))
   
   model_denom <- brm(
-    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + 
-         v2xcs_ccsi_lag2_cumsum + prop_contentious_lag1 +
+    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + v2xcs_ccsi_lag2_cumsum + prop_contentious_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
-         gdpcap_log + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
+         gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
-         (1 | gwcode)),
+         year_c + (1 + year_c | gwcode),
+       decomp = "QR"),
     data = dat,
     family = gaussian(),
-    prior = purpose_settings$prior_denom,
-    control = list(adapt_delta = 0.9,
-                   max_treedepth = 13),
-    chains = purpose_settings$chains, iter = purpose_settings$iter,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors_denom,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(lst(model_num, model_denom))
+  return(lst(model_num, priors_num, model_denom, priors_denom))
 }
 
 
 # Outcome models ----------------------------------------------------------
 
 f_purpose_outcome_total <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
-  dat <- dat %>% filter(laws) %>% 
+  dat <- dat %>% 
+    filter(laws) %>% 
     mutate(prop_contentious_lead1 = ifelse(prop_contentious_lead1 == 1, 0.99, prop_contentious_lead1))
+  
+  priors <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+              prior(student_t(3, 0, 1.5), class = b),
+              prior(exponential(1), class = phi),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, 0, 1.5), class = Intercept, dpar = zi),
+              prior(student_t(3, 0, 1.5), class = b, dpar = zi))
   
   model <- brm(
     bf(prop_contentious_lead1 | weights(iptw) ~ barriers_total + 
          barriers_total_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ barriers_total,
+         year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
     data = dat,
     family = zero_inflated_beta(),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors,
+    init = 0,
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(model)
+  return(lst(model, priors))
 }
 
 f_purpose_outcome_advocacy <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
-  dat <- dat %>% filter(laws) %>% 
+  dat <- dat %>% 
+    filter(laws) %>% 
     mutate(prop_contentious_lead1 = ifelse(prop_contentious_lead1 == 1, 0.99, prop_contentious_lead1))
+  
+  priors <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+              prior(student_t(3, 0, 1.5), class = b),
+              prior(exponential(1), class = phi),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, 0, 1.5), class = Intercept, dpar = zi),
+              prior(student_t(3, 0, 1.5), class = b, dpar = zi))
   
   model <- brm(
     bf(prop_contentious_lead1 | weights(iptw) ~ advocacy + advocacy_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ advocacy,
+         year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
     data = dat,
     family = zero_inflated_beta(),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors,
+    init = 0,
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(model)
+  return(lst(model, priors))
 }
 
 f_purpose_outcome_entry <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
-  dat <- dat %>% filter(laws) %>% 
+  dat <- dat %>% 
+    filter(laws) %>% 
     mutate(prop_contentious_lead1 = ifelse(prop_contentious_lead1 == 1, 0.99, prop_contentious_lead1))
+  
+  priors <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+              prior(student_t(3, 0, 1.5), class = b),
+              prior(exponential(1), class = phi),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, 0, 1.5), class = Intercept, dpar = zi),
+              prior(student_t(3, 0, 1.5), class = b, dpar = zi))
   
   model <- brm(
     bf(prop_contentious_lead1 | weights(iptw) ~ entry + entry_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ entry,
+         year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
     data = dat,
     family = zero_inflated_beta(),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors,
+    init = 0,
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(model)
+  return(lst(model, priors))
 }
 
 f_purpose_outcome_funding <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
-  dat <- dat %>% filter(laws) %>% 
+  dat <- dat %>% 
+    filter(laws) %>% 
     mutate(prop_contentious_lead1 = ifelse(prop_contentious_lead1 == 1, 0.99, prop_contentious_lead1))
+  
+  priors <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+              prior(student_t(3, 0, 1.5), class = b),
+              prior(exponential(1), class = phi),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, 0, 1.5), class = Intercept, dpar = zi),
+              prior(student_t(3, 0, 1.5), class = b, dpar = zi))
   
   model <- brm(
     bf(prop_contentious_lead1 | weights(iptw) ~ funding + funding_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ funding,
+         year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
     data = dat,
     family = zero_inflated_beta(),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors,
+    init = 0,
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  return(model)
+  return(lst(model, priors))
 }
 
 # Including (1 | year) here blows up the models and makes them not converge at
