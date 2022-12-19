@@ -842,7 +842,7 @@ load_clean_disasters <- function(path, skeleton) {
 }
 
 
-# Combine,  clean,  and lag everything ------------------------------------
+# Combine, clean, center, and lag everything ------------------------------
 
 build_country_data <- function(skeleton, chaudhry_clean, vdem_clean,
                                ucdp_prio_clean, disasters_summarized,
@@ -994,6 +994,11 @@ make_final_data <- function(df) {
   }
   
   country_aid_final <- df %>% 
+    # Scale and center big things
+    mutate(across(c(total_oda, gdpcap_log), list(z = ~scale(.)))) %>% 
+    # Center year at 2000, so 1990 = -10; 2012 = 12
+    mutate(year_c = year - 2000) %>% 
+    
     # Proportion of contentious aid
     mutate(prop_contentious = oda_contentious_high / 
              (oda_contentious_low + oda_contentious_high),
@@ -1010,6 +1015,7 @@ make_final_data <- function(df) {
     mutate(across(starts_with("prop_ngo"), list(logit = ~car::logit(., adjust = 0.001)))) %>% 
     mutate(across(c(total_oda, oda_contentious_high, oda_contentious_low, oda_us),
                   list(log = ~log1p(.)))) %>% 
+    
     # Round down the handful of 1s
     mutate(across(c(prop_contentious, prop_ngo_int, prop_ngo_us, prop_ngo_dom, prop_ngo_foreign),
                   list(trunc = ~ ifelse(. == 1, 0.99, .)))) %>% 
@@ -1040,7 +1046,7 @@ lag_data <- function(df) {
     mutate(across(c(barriers_total, advocacy, entry, funding, 
                     barriers_total_new, advocacy_new, entry_new, funding_new,
                     v2xcs_ccsi, v2csreprss,
-                    total_oda, total_oda_log, 
+                    total_oda, total_oda_log, total_oda_z,
                     prop_contentious, prop_contentious_trunc, prop_contentious_logit,
                     prop_ngo_dom, prop_ngo_foreign, 
                     prop_ngo_dom_trunc, prop_ngo_foreign_trunc, 
@@ -1058,7 +1064,7 @@ lag_data <- function(df) {
                     v2xcs_ccsi_lag2, v2csreprss_lag2),
                   list(cumsum = ~cumsum_na(.)))) %>% 
     # Outcome variables
-    mutate(across(c(total_oda, total_oda_log, oda_us, oda_us_log,
+    mutate(across(c(total_oda, total_oda_log, total_oda_z, oda_us, oda_us_log,
                     oda_contentious_low, oda_contentious_high,
                     prop_contentious, prop_contentious_trunc, prop_contentious_logit,
                     oda_us_ngo_dom, oda_us_ngo_int,
@@ -1066,10 +1072,6 @@ lag_data <- function(df) {
                     prop_ngo_dom_trunc, prop_ngo_foreign_trunc,
                     prop_ngo_dom_logit, prop_ngo_foreign_logit),
                   list(lead1 = ~lead(., n = 1)))) %>% 
-    # Shrink down year (years since 1989, so 1990 = 1; 2012 = 23)
-    # Also center year at 2000, so 1990 = -10; 2012 = 12
-    mutate(year_small = year - 1989,
-           year_c = year - 2000) %>% 
     ungroup()
   
   return(panel_lagged)
