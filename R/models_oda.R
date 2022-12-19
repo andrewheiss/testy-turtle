@@ -416,7 +416,7 @@ f_oda_outcome_ccsi <- function(dat) {
     data = dat_500,
     family = hurdle_lognormal(),
     prior = priors,
-    control = list(adapt_delta = 0.9),
+    control = list(adapt_delta = 0.9, max_treedepth = 12),
     chains = bayes_settings$chains, iter = bayes_settings$iter * 2,
     warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
   )
