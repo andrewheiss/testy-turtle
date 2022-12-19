@@ -1,33 +1,3 @@
-# Settings ----------------------------------------------------------------
-
-purpose_setup <- function() {
-  options(worker_options)
-  
-  # Settings
-  CHAINS <- 4
-  ITER <- 2000
-  WARMUP <- 1000
-  BAYES_SEED <- 3246  # From random.org
-  
-  # Priors
-  prior_num <- c(set_prior("student_t(5, 0, 1.5)", class = "Intercept"),
-                 set_prior("normal(0, 2.5)", class = "b"),
-                 set_prior("cauchy(0, 1)", class = "sd"))
-  
-  prior_denom <- c(set_prior("student_t(5, 0, 1.5)", class = "Intercept"),
-                   set_prior("normal(0, 2.5)", class = "b"),
-                   set_prior("cauchy(0, 1)", class = "sd"))
-  
-  prior_out_logit <-  c(set_prior("student_t(3, 0, 2.5)", class = "Intercept"),
-                        set_prior("normal(0, 1)", class = "b"),
-                        set_prior("cauchy(0, 1)", class = "sd"))
-  
-  return(list(chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED,
-              prior_num = prior_num, prior_denom = prior_denom, 
-              prior_out_logit = prior_out_logit))
-}
-
-
 # Preliminary models ------------------------------------------------------
 
 f_purpose_prelim_time_only_total <- function(dat) {
@@ -421,86 +391,48 @@ f_purpose_outcome_funding <- function(dat) {
   return(lst(model, priors))
 }
 
-# Including (1 | year) here blows up the models and makes them not converge at
-# all (see https://twitter.com/andrewheiss/status/1396545208163127297)
 f_purpose_outcome_ccsi <- function(dat) {
-  purpose_settings <- purpose_setup()
-  
-  dat <- dat %>% filter(laws) %>% 
+  dat <- dat %>% 
     mutate(prop_contentious_lead1 = ifelse(prop_contentious_lead1 == 1, 0.99, prop_contentious_lead1))
   
-  dat_100 <- dat %>% mutate(iptw = ifelse(iptw > 100, 100, iptw))
+  dat_50 <- dat %>% mutate(iptw = ifelse(iptw > 50, 50, iptw))
   dat_500 <- dat %>% mutate(iptw = ifelse(iptw > 500, 500, iptw))
-  dat_1000 <- dat %>% mutate(iptw = ifelse(iptw > 1000, 1000, iptw))
-  dat_5000 <- dat %>% mutate(iptw = ifelse(iptw > 5000, 5000, iptw))
   
-  model_100 <- brm(
-    bf(prop_contentious_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ funding,
+  priors <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+              prior(student_t(3, 0, 1.5), class = b),
+              prior(exponential(1), class = phi),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, 0, 1.5), class = Intercept, dpar = zi),
+              prior(student_t(3, 0, 1.5), class = b, dpar = zi))
+  
+  model_50 <- brm(
+    bf(prop_contentious_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum + 
+         year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
-    data = dat_100,
+    data = dat_50,
     family = zero_inflated_beta(),
-    control = list(adapt_delta = 0.9,
-                   max_treedepth = 13),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors,
+    init = 0,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
   model_500 <- brm(
     bf(prop_contentious_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ funding,
+         year_c + (1 + year_c | gwcode),
+       zi ~ year_c + I(year_c^2),
        decomp = "QR"),
     data = dat_500,
     family = zero_inflated_beta(),
-    control = list(adapt_delta = 0.9,
-                   max_treedepth = 13),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
+    prior = priors,
+    init = 0,
+    control = list(adapt_delta = 0.9, max_treedepth = 12),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2,
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  model_1000 <- brm(
-    bf(prop_contentious_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ funding,
-       decomp = "QR"),
-    data = dat_1000,
-    family = zero_inflated_beta(),
-    control = list(adapt_delta = 0.9,
-                   max_treedepth = 13),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
-  )
-  
-  model_5000 <- brm(
-    bf(prop_contentious_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum +
-         year_small + (1 + year_small | gwcode),
-       phi ~ 1,
-       zi ~ funding,
-       decomp = "QR"),
-    data = dat_5000,
-    family = zero_inflated_beta(),
-    control = list(adapt_delta = 0.9,
-                   max_treedepth = 13),
-    prior = purpose_settings$prior_out_logit,
-    inits = "0",
-    threads = threading(2),
-    chains = purpose_settings$chains, iter = purpose_settings$iter * 2,
-    warmup = purpose_settings$warmup, seed = purpose_settings$seed
-  )
-  
-  return(lst(model_100, model_500, model_1000, model_5000))
+  return(lst(model_50, model_500, priors))
 }
