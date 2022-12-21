@@ -337,9 +337,7 @@ list(
   #            f_recip_outcome_funding_foreign(df_recip_iptw_funding_foreign)),
 
   ## Model tables ----
-  # Build tables here because they take forever
-  # Note tibble::lst() instead of base::list(); lst() auto-names the elements by
-  # their object names
+  # Build tables here because they take a while
 
   # H1
   tar_target(models_tbl_h1_treatment_num,
@@ -355,13 +353,13 @@ list(
                                     m_oda_treatment_funding$model_denom,
                                     m_oda_treatment_ccsi$model_denom))),
   tar_target(models_tbl_h1_outcome_dejure,
-             build_modelsummary(lst(m_oda_outcome_total, m_oda_outcome_advocacy,
-                                    m_oda_outcome_entry, m_oda_outcome_funding))),
+             build_modelsummary(lst(m_oda_outcome_total$model, 
+                                    m_oda_outcome_advocacy$model,
+                                    m_oda_outcome_entry$model, 
+                                    m_oda_outcome_funding$model))),
   tar_target(models_tbl_h1_outcome_defacto,
-             build_modelsummary(lst(m_oda_outcome_ccsi$model_100,
-                                    m_oda_outcome_ccsi$model_500,
-                                    m_oda_outcome_ccsi$model_1000,
-                                    m_oda_outcome_ccsi$model_5000))),
+             build_modelsummary(lst(m_oda_outcome_ccsi$model_50,
+                                    m_oda_outcome_ccsi$model_500))),
   # 
   # # H2
   # tar_target(models_tbl_h2_treatment_num,

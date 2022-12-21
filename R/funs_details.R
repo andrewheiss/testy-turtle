@@ -1,15 +1,15 @@
-# Running modelsummary() on Bayesian models takes *forever* because of all the
-# calculations involved in creating the confidence intervals and all the GOF
-# statistics. With modelsummary 0.7, though it's now possible to build the base
-# model with modelsummary(..., output = "modelsummary_list", estimate = "",
-# statistic = ""), save that as an intermediate object, and then feed it through
-# modelsummary() again with whatever other output you want. The
+# Running modelsummary() on Bayesian models takes a while because of all the
+# calculations involved in creating the GOF statistics. With modelsummary 0.7+,
+# though it's now possible to build the base model with modelsummary(..., output
+# = "modelsummary_list"), save that as an intermediate object, and then feed it
+# through modelsummary() again with whatever other output you want. The
 # modelsummary_list-based object thus acts like an output-agnostic ur-model.
 
 build_modelsummary <- function(models) {
   msl <- modelsummary::modelsummary(models,
                                     output = "modelsummary_list",
-                                    statistic = "[{conf.low}, {conf.high}]")
+                                    statistic = "[{conf.low}, {conf.high}]",
+                                    metrics = c("R2"))
   return(msl)
 }
 
