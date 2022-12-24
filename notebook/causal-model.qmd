@@ -500,4 +500,4 @@ Based on these DAGs, here are the variables we use in our treatment and outcome 
     - Internal conflict: `internal_conflict_past_5`
     - Natural disasters: `natural_dis_count`
 - **Time-invarying confounders**
-  - Country code included as multilevel random effects (`(1 + outcome + year | gwcode)`)
+  - Country code included as random intercepts and year included as a population-level trend and random slope (`year + (1 + year | gwcode)`)
