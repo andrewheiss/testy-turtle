@@ -213,7 +213,7 @@ clrs$Peach %>% set_names(1:length(.))
 clrs$Sunset %>% show_nice_pal(show_text = TRUE)
 ```
 
-```{rl hex-sunset}
+```{r hex-sunset}
 #| code-fold: show
 clrs$Sunset %>% set_names(1:length(.))
 ```
