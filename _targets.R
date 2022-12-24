@@ -36,26 +36,10 @@ options(contrasts = rep("contr.treatment", 2))
 # Or do it on a single variable:
 # contrasts(df$x) <- "contr.treatment"
 
-# Things that get set in options() are not passed down to workers in future (see
-# https://github.com/HenrikBengtsson/future/issues/134), which means all these
-# neat options we set here disappear when running tar_make_future() (like
-# ordered treatment contrasts and the number of cores used, etc.). The official
-# recommendation is to add options() calls to the individual workers.
-#
-# We do this by including options() in the functions where we define model
-# priors and other settings (i.e. oda_setup()). But setting options there
-# inside a bunch of files can get tedious, since the number of cores, workers,
-# etc. depends on the computer we run this on (i.e. my 8-core personal laptop
-# vs. my 16-core work laptop).
-
-# Pass these options to workers using options(worker_options)
-worker_options <- options()[c("mc.cores", "brms.backend", "brms.threads",
-                              "contrasts", "tidyverse.quiet",
-                              "dplyr.summarise.inform")]
-
 set.seed(7305)  # From random.org
 
-tar_option_set(packages = c("tidyverse", "here", "fs", "scales", "withr"))
+tar_option_set(packages = c("tidyverse"),
+               format = "qs")
 
 source("R/graphics.R")
 source("R/misc.R")
@@ -73,14 +57,6 @@ source("R/funs_notebook.R")
 # fs::path_rel() works fine with it (see
 # https://github.com/r-lib/here/issues/36#issuecomment-530894167)
 here_rel <- function(...) {fs::path_rel(here::here(...))}
-
-# lhs <- function(x) {
-#   if (attr(terms(as.formula(x)), which = "response")) {
-#     all.vars(x)[1]
-#   } else {
-#     NULL
-#   }
-# }
 
 # Pipeline ----------------------------------------------------------------
 list(

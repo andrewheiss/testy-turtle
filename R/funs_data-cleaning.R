@@ -8,6 +8,7 @@ library(readxl)
 library(WDI)
 suppressPackageStartupMessages(library(sf))
 library(jsonlite)
+library(scales)
 suppressPackageStartupMessages(library(janitor))
 
 
