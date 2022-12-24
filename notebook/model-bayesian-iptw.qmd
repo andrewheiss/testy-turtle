@@ -1,3 +1,0 @@
----
-title: "Issues with Bayesian IPTW"
----

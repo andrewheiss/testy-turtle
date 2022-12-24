@@ -1,0 +1,132 @@
+---
+title: "Issues with Bayesian IPTW"
+---
+
+
+Practical concerns with using weights in a Bayesian or pseudo-Bayesian way
+
+
+
+```{r}
+tar_load(m_purpose_outcome_total)
+
+m_purpose_outcome_total
+
+plot_cap(m_purpose_outcome_total$model,
+         condition = "barriers_total", type = "response",
+         re_formula = NA)
+```
+
+```{r}
+tar_load(m_purpose_outcome_advocacy)
+
+m_purpose_outcome_advocacy
+
+plot_cap(m_purpose_outcome_advocacy$model,
+         condition = "advocacy", type = "response",
+         re_formula = NA)
+```
+
+```{r}
+tar_load(m_purpose_outcome_entry)
+
+m_purpose_outcome_entry
+
+plot_cap(m_purpose_outcome_entry$model,
+         condition = "entry", type = "response",
+         re_formula = NA)
+```
+
+```{r}
+tar_load(m_purpose_outcome_funding)
+
+m_purpose_outcome_funding
+
+plot_cap(m_purpose_outcome_funding$model,
+         condition = "funding", type = "response",
+         re_formula = NA)
+```
+
+
+
+
+
+```{r}
+tar_load(df_purpose_iptw_ccsi)
+
+asdf <- df_purpose_iptw_ccsi %>% 
+  mutate(threshold = 500, 
+         iptw = ifelse(iptw > threshold, threshold, iptw))
+
+asdf %>% count(iptw == threshold)
+
+asdf %>% filter(iptw != 50) %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram()
+```
+
+
+```{r}
+
+summary(df_purpose_iptw_ccsi$iptw)
+
+plot_iptw_ccsi <- bind_rows(
+  df_purpose_iptw_ccsi %>% mutate(threshold = 50, iptw = ifelse(iptw > 50, 50, iptw)),
+  df_purpose_iptw_ccsi %>% mutate(threshold = 100, iptw = ifelse(iptw > 100, 100, iptw)),
+  df_purpose_iptw_ccsi %>% mutate(threshold = 1000, iptw = ifelse(iptw > 1000, 1000, iptw))
+) %>% 
+  mutate(threshold = paste0("Truncated at ", comma(threshold)),
+         threshold = fct_inorder(threshold))
+
+plot_iptw_ccsi %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(bins = 50, boundary = 0) +
+  facet_wrap(vars(threshold), scales = "free_x") +
+  theme_donors()
+```
+
+
+
+
+```{r}
+tar_load(m_purpose_outcome_ccsi)
+```
+
+```{r}
+plot_cap(m_purpose_outcome_ccsi$model_50,
+         condition = "v2xcs_ccsi", type = "response",
+         re_formula = NA)
+
+m_purpose_outcome_ccsi$model_50 %>% 
+  epred_draws(newdata = datagrid(model = m_purpose_outcome_ccsi$model_50,
+                                 year_c = 0,
+                                 v2xcs_ccsi = seq(0, 1, 0.1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  # scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Predicted foriegn aid") +
+  theme_donors()
+
+mfx_prop_ccsi <- marginaleffects(
+  m_purpose_outcome_ccsi$model_50, 
+  newdata = datagrid(year_c = 0,
+                     v2xcs_ccsi = seq(0, 1, 0.5)),
+  variables = "v2xcs_ccsi",
+  type = "response",
+  re_formula = NA
+)
+
+mfx_prop_ccsi %>% 
+  posteriordraws() %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(v2xcs_ccsi))) +
+  stat_halfeye(alpha = 0.7) +
+  # scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
+  labs(x = "Conditional effect of\ncore civil society index on ODA, dollars", y = NULL,
+       subtitle = "Dollar scale", fill = NULL) +
+  theme_donors()
+```
