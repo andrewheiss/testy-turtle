@@ -2,8 +2,6 @@
 title: "Process and merge data"
 author: "Suparna Chaudhry and Andrew Heiss"
 date: "Last run: `r format(Sys.time(), '%F')`"
-bibliography: "`r here::here('manuscript', 'bibliography.bib')`"
-csl: "`r here::here('manuscript', 'pandoc', 'csl', 'chicago-author-date.csl')`"
 link-citations: true
 ---
 
