@@ -231,6 +231,19 @@ list(
   tar_target(m_oda_treatment_ccsi, f_oda_treatment_ccsi(country_aid_final)),
   tar_target(df_oda_iptw_ccsi, create_iptws(trim_oecd(country_aid_final), m_oda_treatment_ccsi)),
   tar_target(m_oda_outcome_ccsi, f_oda_outcome_ccsi(df_oda_iptw_ccsi)),
+  
+  tar_target(mfx_oda_cfx_multiple, 
+             f_mfx_oda_cfx_multiple(m_oda_outcome_total$model,
+                                    m_oda_outcome_advocacy$model,
+                                    m_oda_outcome_entry$model,
+                                    m_oda_outcome_funding$model,
+                                    m_oda_outcome_ccsi$model_50)),
+  tar_target(mfx_oda_cfx_single, 
+             f_mfx_oda_cfx_single(m_oda_outcome_total$model,
+                                  m_oda_outcome_advocacy$model,
+                                  m_oda_outcome_entry$model,
+                                  m_oda_outcome_funding$model,
+                                  m_oda_outcome_ccsi$model_50)),
 
   ### Models for H2: aid contentiousness ----
   tar_target(m_purpose_prelim_time_only_total, f_purpose_prelim_time_only_total(country_aid_final)),

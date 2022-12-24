@@ -423,3 +423,108 @@ f_oda_outcome_ccsi <- function(dat) {
 
   return(lst(model_50, model_500, priors))
 }
+
+
+# Marginal and conditional effects ----------------------------------------
+
+f_mfx_oda_cfx_multiple <- function(model_total, model_advocacy, model_entry, model_funding, model_ccsi) {
+  library(marginaleffects)
+  
+  set.seed(bayes_settings$seed$general)
+  
+  total <- marginaleffects(
+    model_total, 
+    newdata = datagrid(year_c = 0,
+                       barriers_total = seq(0, 10, 1)),
+    variables = "barriers_total",
+    type = "response",
+    re_formula = NA
+  )
+  
+  advocacy <- marginaleffects(
+    model_advocacy, 
+    newdata = datagrid(year_c = 0,
+                       advocacy = seq(0, 2, 1)),
+    variables = "advocacy",
+    type = "response",
+    re_formula = NA
+  )
+  
+  entry <- marginaleffects(
+    model_entry, 
+    newdata = datagrid(year_c = 0,
+                       entry = seq(0, 3, 1)),
+    variables = "entry",
+    type = "response",
+    re_formula = NA
+  )
+  
+  funding <- marginaleffects(
+    model_funding, 
+    newdata = datagrid(year_c = 0,
+                       funding = seq(0, 4, 1)),
+    variables = "funding",
+    type = "response",
+    re_formula = NA
+  )
+  
+  ccsi <- marginaleffects(
+    model_ccsi,
+    newdata = datagrid(year_c = 0,
+                       v2xcs_ccsi = seq(0, 1, 0.5)),
+    variables = "v2xcs_ccsi",
+    type = "response",
+    re_formula = NA
+  )
+  
+  return(lst(total, advocacy, entry, funding, ccsi))
+}
+
+f_mfx_oda_cfx_single <- function(model_total, model_advocacy, model_entry, model_funding, model_ccsi) {
+  library(marginaleffects)
+  
+  set.seed(bayes_settings$seed$general)
+  
+  total <- marginaleffects(
+    model_total, 
+    newdata = datagrid(year_c = 0, barriers_total = 1),
+    variables = "barriers_total",
+    type = "response",
+    re_formula = NA
+  )
+  
+  advocacy <- marginaleffects(
+    model_advocacy, 
+    newdata = datagrid(year_c = 0, advocacy = 1),
+    variables = "advocacy",
+    type = "response",
+    re_formula = NA
+  )
+  
+  entry <- marginaleffects(
+    model_entry, 
+    newdata = datagrid(year_c = 0, entry = 1),
+    variables = "entry",
+    type = "response",
+    re_formula = NA
+  )
+  
+  funding <- marginaleffects(
+    model_funding, 
+    newdata = datagrid(year_c = 0, funding = 1),
+    variables = "funding",
+    type = "response",
+    re_formula = NA
+  )
+  
+  ccsi <- marginaleffects(
+    model_ccsi,
+    newdata = datagrid(year_c = 0, v2xcs_ccsi = 0.5),
+    variables = "v2xcs_ccsi",
+    type = "response",
+    re_formula = NA
+  )
+  
+  return(lst(total, advocacy, entry, funding, ccsi))
+}
+

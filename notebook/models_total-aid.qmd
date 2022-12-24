@@ -17,7 +17,7 @@ options(digits = 3, width = 120,
         knitr.kable.NA = "")
 ```
 
-```{scss, echo=FALSE}
+```{scss, echo=FALSE, message=FALSE}
 // kableExtra or modelsummary or Quarto or *something* injects `border-bottom: 0` 
 // into the inline <table style=XXX> for modelsummary tables when there are notes 
 // with multiple lines (most esoteric bug ever!). This nukes the light grey bottom 
@@ -39,8 +39,11 @@ library(modelsummary)
 library(marginaleffects)
 library(patchwork)
 library(scales)
+library(ggdist)
 library(ggtext)
+library(ggh4x)
 library(kableExtra)
+library(glue)
 library(here)
 
 set.seed(1234)
@@ -48,6 +51,7 @@ set.seed(1234)
 # Load stuff from targets
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+set_annotation_fonts()
 
 # Tell bayesplot to use the sunset palette for things like pp_check()
 bayesplot::color_scheme_set(clrs$Sunset[2:7])
@@ -70,6 +74,9 @@ tar_load(c(df_oda_iptw_total, df_oda_iptw_advocacy,
 tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
            m_oda_outcome_entry, m_oda_outcome_funding,
            m_oda_outcome_ccsi))
+
+# Marginal/conditional effects
+tar_load(c(mfx_oda_cfx_multiple, mfx_oda_cfx_single))
 
 # Results tables
 tar_load(c(models_tbl_h1_treatment_num, models_tbl_h1_treatment_denom))
@@ -128,7 +135,27 @@ coefs_denom <- list(
   "b_Intercept" = "Intercept",
   "b_year_c" = "Year trend",
   "sd_gwcode__Intercept" = "Between-country intercept variability (\\(\\sigma_0\\) for \\(b_0\\) offsets)",
-  "sd_gwcode__year_c" = "Between-country year variability (\\(\\sigma_1\\) for \\(b_1\\) offsets)",
+  "sd_gwcode__year_c" = "Between-country year variability (\\(\\sigma_{17}\\) for \\(b_{17}\\) offsets)",
+  "cor_gwcode__Intercept__year_c" = "Correlation between random intercepts and slopes (\\(\\rho\\))",
+  "sigma" = "Model variability (\\(\\sigma_y\\))"
+)
+
+coefs_outcome <- list(
+  "b_barriers_total" = "Treatment (t − 1)",
+  "b_barriers_total_lag1_cumsum" = "Treatment history",
+  "b_advocacy" = "Treatment (t − 1)",
+  "b_advocacy_lag1_cumsum" = "Treatment history",
+  "b_entry" = "Treatment (t − 1)",
+  "b_entry_lag1_cumsum" = "Treatment history",
+  "b_funding" = "Treatment (t − 1)",
+  "b_funding_lag1_cumsum" = "Treatment history",
+  "b_Intercept" = "Intercept",
+  "b_year_c" = "Year",
+  "b_hu_year_c" = "Hurdle part: Year",
+  "b_hu_Iyear_cE2" = "Hurdle part: Year²",
+  "b_hu_Intercept" = "Hurdle part: Intercept",
+  "sd_gwcode__Intercept" = "Between-country intercept variability (\\(\\sigma_0\\) for \\(b_0\\) offsets)",
+  "sd_gwcode__year_c" = "Between-country year variability (\\(\\sigma_3\\) for \\(b_3\\) offsets)",
   "cor_gwcode__Intercept__year_c" = "Correlation between random intercepts and slopes (\\(\\rho\\))",
   "sigma" = "Model variability (\\(\\sigma_y\\))"
 )
@@ -137,12 +164,17 @@ treatment_names <- c("Treatment", "Total barriers (t)", "Barriers to advocacy (t
                      "Barriers to entry (t)", "Barriers to funding (t)", "CCSI (t)")
 treatment_rows <- as.data.frame(t(treatment_names))
 attr(treatment_rows, "position") <- 1
+
+outcome_names <- c("Treatment", "Total barriers (t)", "Barriers to advocacy (t)", 
+                   "Barriers to entry (t)", "Barriers to funding (t)")
+outcome_rows <- as.data.frame(t(outcome_names))
+attr(outcome_rows, "position") <- 1
 ```
 
 
-## Weight models
+# Weight models
 
-### General idea
+## General idea
 
 To create stabilized inverse probability of treatment weights (IPTW) for a continuous treatment, we calculate the ratio of two distributions:
 
@@ -153,7 +185,7 @@ To create stabilized inverse probability of treatment weights (IPTW) for a conti
 We then calculate the cumulative product of this ratio for each year within each country:
 
 $$
-\text{Stabilized weights} = \prod^t_{t = 1} 
+\text{Stabilized weights (IPTW)} = \prod^t_{t = 1} 
 \frac{\phi \left(X_{it} \mid X_{i, t-1}, \left[\sum_{\tau = (t-2)}^{t} X_{i\tau}\right], Z_i \right)}
 {\phi \left(X_{it} \mid X_{i, t-1}, \left[\sum_{\tau = (t-2)}^{t} X_{i\tau}\right], Y_{i, t-1}, Z_{it}, Z_i \right)}
 $$
@@ -186,11 +218,11 @@ data <- data %>%
 ```
 
 
-### Actual models
+## Actual models
 
 We identify our time-varying and time-invariant confounders based on [our causal model and *do*-calculus logic](causal-model.qmd#final-variables-to-use), and we deal with the panel structure of the data by including random intercepts for country, and both a population-level trend and random slopes for year. We use [generic weakly informative priors](https://mc-stan.org/users/documentation/case-studies/weakly_informative_shapes.html) for our model parameters.
 
-#### Numerator
+### Numerator
 
 Our numerator models look like this (but with the actual treatment variable replacing `treatment`, like `barriers_total`, `advocacy`, and so on):
 
@@ -212,7 +244,7 @@ b_{0_j} &\sim \mathcal{N}(0, \sigma_0) \\
 \end{aligned}
 $$
 
-#### Denominator
+### Denominator
 
 Our denominator models look like this (but again with the actual treatment variable replacing `treatment`):
 
@@ -269,15 +301,15 @@ $$
 \end{aligned}
 $$
 
-### Check weight models
+## MCMC diagnostics
 
 Just to make sure everything converged nicely, we check some diagnostics for the weight models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
 
-#### Numerator
+### Numerator
 
 ::: {.panel-tabset}
 
-##### Trace plots
+#### Trace plots
 
 ```{r plot-num-trace, warning=FALSE}
 #| out-width: 80%
@@ -290,7 +322,7 @@ m_oda_treatment_total$model_num %>%
   theme_donors()
 ```
 
-##### Trank plots
+#### Trank plots
 
 ```{r plot-num-trank, warning=FALSE}
 #| out-width: 80%
@@ -306,7 +338,7 @@ m_oda_treatment_total$model_num %>%
   theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
 ```
 
-##### Posterior predictive check
+#### Posterior predictive check
 
 ```{r plot-num-ppcheck}
 #| out-width: 80%
@@ -320,11 +352,11 @@ withr::with_seed(1234, {
 
 :::
 
-#### Denominator
+### Denominator
 
 ::: {.panel-tabset}
 
-##### Trace plots
+#### Trace plots
 
 ```{r plot-denom-trace, warning=FALSE, fig.width=10, fig.height=7}
 #| out-width: 100%
@@ -337,7 +369,7 @@ m_oda_treatment_total$model_denom %>%
   theme_donors()
 ```
 
-##### Trank plots
+#### Trank plots
 
 ```{r plot-denom-trank, warning=FALSE, fig.width=10, fig.height=7}
 #| out-width: 100%
@@ -353,7 +385,7 @@ m_oda_treatment_total$model_denom %>%
   theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
 ```
 
-##### Posterior predictive check
+#### Posterior predictive check
 
 ```{r plot-denom-ppcheck}
 #| out-width: 80%
@@ -368,12 +400,12 @@ withr::with_seed(1234, {
 :::
 
 
-### Check weights
+## Check weights
 
 IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. When they're big, it's a good idea to truncate them at some reasonable level.
 
 ::: {.panel-tabset}
-#### Total ODA
+### Total ODA
 
 The max weight here is `r round(max(df_oda_iptw_total$iptw), 0)`, but there are only a handful of observations with weights that high. The average is `r round(mean(df_oda_iptw_total$iptw), 2)` and the median is `r round(median(df_oda_iptw_total$iptw), 2)`, which are both close to 1, so we're good.
 
@@ -389,7 +421,7 @@ df_oda_iptw_total %>%
   theme_donors()
 ```
 
-#### Advocacy
+### Advocacy
 
 The max weight here is `r round(max(df_oda_iptw_advocacy$iptw), 0)` which is lovely. The average is `r round(mean(df_oda_iptw_advocacy$iptw), 2)`, so we're good.
 
@@ -405,7 +437,7 @@ df_oda_iptw_advocacy %>%
   theme_donors()
 ```
 
-#### Entry
+### Entry
 
 The max weight here is `r round(max(df_oda_iptw_entry$iptw), 0)` which is grand. The average is `r round(mean(df_oda_iptw_entry$iptw), 2)`, so we're golden.
 
@@ -421,7 +453,7 @@ df_oda_iptw_entry %>%
   theme_donors()
 ```
 
-#### Funding
+### Funding
 
 The max weight here is `r round(max(df_oda_iptw_funding$iptw), 0)` which is fine. The average is `r round(mean(df_oda_iptw_funding$iptw), 2)`, so all is well.
 
@@ -437,7 +469,7 @@ df_oda_iptw_funding %>%
   theme_donors()
 ```
 
-#### Core civil society index
+### Core civil society index
 
 lol these blow up. The max weight is `r label_comma()(max(df_oda_iptw_ccsi$iptw))`, which, oh no.
 
@@ -473,13 +505,13 @@ plot_iptw_ccsi %>%
 :::
 
 
-### Results
+## Results
 
 These are less important since we just use these treatment models to generate weights *and* because interpreting each coefficient when trying to isolate causal effects is unimportant [@WestreichGreenland:2013; @KeeleStevensonElwert:2020].
 
 ::: {.panel-tabset}
 
-#### Numerator
+### Numerator
 
 ```{r tbl-h1-num, warning=FALSE}
 #| tbl-cap: Results from all numerator models
@@ -504,7 +536,7 @@ modelsummary(models_tbl_h1_treatment_num,
   kable_styling(htmltable_class = "table-sm light-border")
 ```
 
-#### Denominator
+### Denominator
 
 ```{r tbl-h1-denom, warning=FALSE}
 #| tbl-cap: Results from all numerator models
@@ -531,74 +563,936 @@ modelsummary(models_tbl_h1_treatment_denom,
 
 :::
 
-## Outcome models
+# Outcome models
 
-### Formal model
+Our outcome variable for this hypothesis is total foreign aid (ODA), which is (1) exponentially distributed and (2) has a lot of zeros. 
 
-### MCMC diagnostics
+```{r tbl-zero-summary}
+#| tbl-cap: 0s in total ODA
+df_country_aid_laws %>% 
+  count(is_zero = total_oda == 0) %>% 
+  mutate(Outcome = "Total ODA") %>% 
+  mutate(`Number of 0s` = glue("{n[2]} / {sum(n)}")) %>% 
+  mutate(`Proportion of 0s` = label_percent(accuracy = 0.1)(n / sum(n))) %>% 
+  filter(is_zero) %>% select(-is_zero, -n) %>% 
+  kbl(align = c("l", "c", "c")) %>% 
+  kable_styling(htmltable_class = "table table-sm",
+                full_width = FALSE)
+```
 
-### Analyzing the posterior
+```{r plot-zero-oda, fig.width=8, fig.height=3.5}
+#| out-width: 90%
+#| column: page-inset-right
+plot_dist_unlogged <- df_country_aid_laws %>%
+  mutate(is_zero = total_oda == 0) %>% 
+  mutate(total_oda = ifelse(is_zero, -0.1, total_oda))  %>%  
+  ggplot(aes(x = total_oda)) +
+  geom_histogram(aes(fill = is_zero), binwidth = 2e9, 
+                 linewidth = 0.25, boundary = 0, color = "white") +
+  geom_vline(xintercept = 0) + 
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_y_continuous(labels = label_comma()) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]), 
+                    guide = guide_legend(reverse = TRUE)) +
+  labs(x = "Total ODA", y = "Count", fill = "Is zero?") +
+  theme_donors() +
+  theme(legend.position = "bottom")
 
-#### Within- and between-country variability
+plot_dist_logged <- df_country_aid_laws %>%
+  mutate(is_zero = total_oda_log == 0) %>% 
+  mutate(total_oda_log = ifelse(is_zero, -0.1, total_oda_log))  %>%  
+  ggplot(aes(x = total_oda_log)) +
+  geom_histogram(aes(fill = is_zero), binwidth = 1, 
+                 linewidth = 0.25, boundary = 0, color = "white") +
+  geom_vline(xintercept = 0) +
+  scale_x_continuous(labels = label_math(e^.x)) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]), 
+                    guide = guide_legend(reverse = TRUE)) +
+  labs(x = "Total ODA (logged)", y = "Count", fill = "Is zero?") +
+  theme_donors() +
+  theme(legend.position = "bottom")
 
-::: {.panel-tabset group="outcome"}
-##### Total ODA
+(plot_dist_unlogged | plot_dist_logged) +
+  plot_layout(guides = "collect") +
+  plot_annotation(theme = theme(legend.position = "bottom"))
+```
 
-##### Advocacy
+Because of this distribution, we use a hurdled lognormal family to model the outcome. [This guide to working with tricky outcomes with lots of zeros](model-tricky-outcomes.qmd#hurdle-models-total-aid) explores all the intricacies of hurdled lognormal models, so we won't go into tons of detail here.
 
-##### Entry
+Following our marginal structural model approach, we need to run a model weighted by the stabilized inverse probability weights that includes covariates for lagged treatment $X_{i, t-1}$, treatment history $\sum_{\tau = (t-2)}^{t} X_{i\tau}$, and non-time-varying confounders $Z_i$. We expand on this approach to account for the panel structure of the data by using a multilevel hierarchical model with country-specific intercepts and a year trend with country-specific offsets (following yet another guide I wrote for this project, [this one on multilevel panel data](https://www.andrewheiss.com/blog/2021/12/01/multilevel-models-panel-data-guide/)). We center the year at 2000 so that (1) the intercept is interpretable [@Schielzeth:2010] and (2) the MCMC simulation runs faster and more efficiently [@McElreath:2020 §13.4, pp. 420–422]. 
 
-##### Funding
+We’re not entirely sure what the actual underlying zero process is for foreign aid, but from looking at the data, we know that there’s a time component—before 1995 and after 2005 lots of countries received no aid. We don’t know why, though. Maybe there are issues with reporting quality. Maybe some countries didn’t need aid anymore (almost like a survival model, but not really, since countries can resume getting aid later after seeing a 0). Maybe there were political reasons. It’s impossible to tell, and it goes beyond the scope of our paper here. Accordingly, we model the hurdle part of the model with year and year squared since the year trend is parabolic and nonlinear.
 
-##### Core civil society index
+```{r plot-prop-zero-hu, fig.width=6, fig.height=3.5}
+#| out-width: 80%
+df_country_aid_laws %>% 
+  group_by(year) %>% 
+  summarize(prop_zero = mean(total_oda == 0)) %>% 
+  ggplot(aes(x = year, y = prop_zero)) +
+  geom_line(linewidth = 0.5, color = "grey70") +
+  geom_point(size = 1) + 
+  geom_smooth(aes(color = "y = year + year<sup>2</sup>"), method = "lm", 
+              formula = y ~ x + I(x^2), se = FALSE) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_color_manual(values = clrs$Prism[c(3, 11)]) +
+  labs(x = NULL, y = "Proportion of countries with zero ODA",
+       color = NULL) +
+  theme_donors() +
+  theme(legend.text = element_markdown())
+```
+
+
+## Formal model and priors
+
+Our final model looks like this (again with `treatment` replaced by the actual treatment column):
+
+```{r fake-outcome, eval=FALSE}
+#| code-fold: show
+bf(total_oda | weights(iptw) ~ treatment_lag1 + treatment_lag2_cumsum +
+     year_c + (1 + year_c | gwcode),
+   hu ~ year_c + I(year_c^2))
+```
+
+Or more formally:
+
+::: {.column-page-inset-right}
+
+$$
+\begin{aligned}
+&\ \mathrlap{\textbf{Hurdled model of aid $i$ across time $t$ within each country $j$}} \\
+\text{Foreign aid}_{it_j} \sim&\ \mathrlap{\begin{cases}
+0 & \text{with probability } \pi_{it} \\[4pt]
+\operatorname{Log-normal}(\mu_{it_j}, \sigma_y) & \text{with probability } 1 - \pi_{it}
+\end{cases}} \\
+\\
+&\ \textbf{Models for distribution parameters} \\
+\operatorname{logit}(\pi_{it}) =&\ \gamma_0 + \gamma_1 \text{Year}_{it} + \gamma_2 \text{Year}^2_{it} & \text{Zero/not-zero process} \\[4pt]
+\log (\mu_{it_j}) =&\ \text{IPTW}_{i, t-1_j} \times \Bigl[ (\beta_0 + b_{0_j}) + \beta_1\, \text{Treatment}_{i, t-1_j} + \\
+&\ \beta_2\, \textstyle{\sum_{\tau = (t-2)}^{t}} \text{Treatment}_{i\tau} + (\beta_3 + b_{3_j}) \text{Year}_{it_j} \Bigr] & \text{Within-country variation} \\[4pt]
+\left(
+  \begin{array}{c} 
+  b_{0_j} \\
+  b_{3_j}
+  \end{array}
+\right) 
+\sim&\ \text{MV}\,\mathcal{N}
+\left[
+  \left(
+    \begin{array}{c}
+    0 \\
+    0 \\
+    \end{array}
+  \right)
+  , \,
+  \left(
+  \begin{array}{cc}
+     \sigma^2_{0} & \rho_{0, 3}\, \sigma_{0} \sigma_{3} \\ 
+     \cdots & \sigma^2_{3}
+  \end{array}
+\right)
+\right] & \text{Variability in average intercepts and slopes} \\
+\\
+&\ \textbf{Priors} \\
+\gamma_0 \sim&\ \text{Student $t$}(\nu = 3, \mu = -2, \sigma = 1.5) & \text{Prior for intercept in hurdle model} \\
+\gamma_1, \gamma_2 \sim&\ \text{Student $t$}(\nu = 3, \mu = 0, \sigma = 1.5) & \text{Prior for year effect in hurdle model} \\
+\beta_0 \sim&\ \mathcal{N}(20, 2.5) & \text{Prior for global average aid} \\
+\beta_1, \beta_2, \beta_3 \sim&\ \mathcal{N}(0, 2) & \text{Prior for global effects} \\
+\sigma_y, \sigma_0, \sigma_3 \sim&\ \operatorname{Exponential}(1) & \text{Prior for within-country variability} \\
+\rho \sim&\ \operatorname{LKJ}(2) & \text{Prior for between-country variability}
+\end{aligned}
+$$
 
 :::
 
-#### Hurdled vs. non-hurdled
+Here's what those priors look like:
 
-TODO: Show three panels
+```{r plot-outcome-priors, fig.width=7, fig.height=5.5}
+design <- "
+  AAABBB
+  CCCDDD
+  EEFFGG
+"
 
-::: {.panel-tabset group="outcome"}
-##### Total ODA
+m_oda_outcome_total$priors %>% 
+  parse_dist() %>% 
+  # K = dimension of correlation matrix; 
+  # ours is 2x2 here because we have one random slope
+  marginalize_lkjcorr(K = 2) %>%
+  mutate(nice_title = glue("**{class}**: {prior}"),
+         stage = ifelse(dpar == "hu", "Hurdle part (π)", "Lognormal part (µ and σ)")) %>% 
+  mutate(nice_title = fct_inorder(nice_title)) %>% 
+  ggplot(aes(y = 0, dist = .dist, args = .args, fill = prior)) +
+  stat_slab(normalize = "panels") +
+  scale_fill_manual(values = clrs$Prism[1:6]) +
+  facet_manual(vars(stage, nice_title), design = design, scales = "free_x",
+               strip = strip_nested(background_x = list(element_rect(fill = "grey92"), NULL),
+                                    by_layer_x = TRUE)) +
+  guides(fill = "none") +
+  labs(x = NULL, y = NULL) +
+  theme_donors(prior = TRUE) +
+  theme(strip.text = element_markdown())
+```
 
-##### Advocacy
 
-##### Entry
+## MCMC diagnostics
 
-##### Funding
+To check that everything converged nicely, we check some diagnostics for the weight models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
 
-##### Core civil society index
+::: {.panel-tabset}
+
+### Trace plots
+
+```{r plot-outcome-trace, warning=FALSE}
+#| out-width: 80%
+m_oda_outcome_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^sigma`, regex = TRUE) %>% 
+  ggplot(aes(x = .iteration, y = .value, color = factor(.chain))) +
+  geom_line(linewidth = 0.1) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors()
+```
+
+### Trank plots
+
+```{r plot-outcome-trank, warning=FALSE}
+#| out-width: 80%
+m_oda_outcome_total$model %>% 
+  gather_draws(`^b_.*|^sd_.*|^sigma`, regex = TRUE) %>% 
+  group_by(.variable) %>% 
+  mutate(draw_rank = rank(.value)) %>% 
+  ggplot(aes(x = draw_rank, color = factor(.chain))) +
+  stat_bin(geom = "step", binwidth = 1000, position = position_identity(), boundary = 0) +
+  scale_color_manual(values = clrs$Sunset[3:6]) +
+  facet_wrap(vars(.variable), scales = "free_y") +
+  theme_donors() +
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank())
+```
+
+### Posterior predictive check
+
+```{r plot-outcome-ppcheck, message=FALSE}
+#| out-width: 80%
+withr::with_seed(1234, {
+  pp_check(m_oda_outcome_total$model, ndraws = 20) +
+    labs(x = "Total ODA",
+         title = "Outcome model") +
+    theme_donors() +
+    coord_cartesian(xlim = c(0, 5e10))
+})
+```
 
 :::
 
-#### Global analysis
+## Analyzing the posterior
 
-##### Conditional effects
+TODO
 
-::: {.panel-tabset group="outcome"}
-##### Total ODA
+### Average treatment effects (global analysis)
 
-##### Advocacy
+TODO: We care most about conditional effects. That's what our main estimand is—the effect of treatment when all offsets are set to 0. 
 
-##### Entry
+::: {.panel-tabset}
+#### Total barriers
 
-##### Funding
+In general, aid decreases slightly as additional legal barriers are added:
 
-##### Core civil society index
+```{r plot-cfx-range-total}
+#| out-width: 80%
+m_oda_outcome_total$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_total$model,
+                                 year_c = 0,
+                                 barriers_total = seq(0, 10, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = barriers_total, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = "Total barriers", y = "Predicted ODA in the following year") +
+  theme_donors()
+```
+
+We can get the exact slope of the line at different levels of de jure restriction. The effect is fairly small—only a posterior median decrease of ≈\$6 million, with pretty huge credible intervals
+
+```{r cfx-mfx-total}
+mfx_oda_cfx_multiple$total %>% 
+  select(barriers_total, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_dollar()(.)))
+```
+
+```{r cfx-mfx-total-p-direction}
+mfx_total_p_direction <- mfx_oda_cfx_multiple$total %>% 
+  posteriordraws() %>% 
+  filter(barriers_total == 1) %>% 
+  summarize(pd = sum(draw < 0) / n()) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r plot-cfx-mfx-total}
+#| out-width: 80%
+mfx_oda_cfx_multiple$total %>% 
+  posteriordraws() %>% 
+  filter(barriers_total %in% c(1, 7)) %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(barriers_total))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
+  labs(x = "Conditional effect of\ntotal barriers on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE < 0) = {pull(mfx_total_p_direction, pd_short)}"), fill = NULL) +
+  theme_donors()
+```
+
+#### Advocacy
+
+```{r plot-cfx-range-advocacy}
+#| out-width: 80%
+m_oda_outcome_advocacy$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_advocacy$model,
+                                 year_c = 0,
+                                 advocacy = seq(0, 2, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = advocacy, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_continuous(breaks = 0:2) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = "Barriers to advocacy", y = "Predicted ODA in the following year") +
+  theme_donors()
+```
+
+```{r cfx-mfx-advocacy}
+mfx_oda_cfx_multiple$advocacy %>% 
+  select(advocacy, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_dollar()(.)))
+```
+
+```{r cfx-mfx-advocacy-p-direction}
+mfx_advocacy_p_direction <- mfx_oda_cfx_multiple$advocacy %>% 
+  posteriordraws() %>% 
+  filter(advocacy == 1) %>% 
+  summarize(pd = sum(draw > 0) / n()) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r plot-cfx-mfx-advocacy}
+#| out-width: 80%
+mfx_oda_cfx_multiple$advocacy %>% 
+  posteriordraws() %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(advocacy))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
+  labs(x = "Conditional effect of\nbarriers to advocacy on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE > 0) = {pull(mfx_advocacy_p_direction, pd_short)}"), fill = NULL) +
+  theme_donors()
+```
+
+#### Entry
+
+```{r plot-cfx-range-entry}
+#| out-width: 80%
+m_oda_outcome_entry$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_entry$model,
+                                 year_c = 0,
+                                 entry = seq(0, 3, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = entry, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_continuous(breaks = 0:3) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = "Barriers to entry", y = "Predicted ODA in the following year") +
+  theme_donors()
+```
+
+```{r cfx-mfx-entry}
+mfx_oda_cfx_multiple$entry %>% 
+  select(entry, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_dollar()(.)))
+```
+
+```{r cfx-mfx-entry-p-direction}
+mfx_entry_p_direction <- mfx_oda_cfx_multiple$entry %>% 
+  posteriordraws() %>% 
+  filter(entry == 1) %>% 
+  summarize(pd = sum(draw > 0) / n()) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r plot-cfx-mfx-entry}
+#| out-width: 80%
+mfx_oda_cfx_multiple$entry %>% 
+  posteriordraws() %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(entry))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(2, 4, 6, 7)]) +
+  labs(x = "Conditional effect of\nbarriers to entry on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE > 0) = {pull(mfx_entry_p_direction, pd_short)}"), fill = NULL) +
+  theme_donors()
+```
+
+#### Funding
+
+```{r plot-cfx-range-funding}
+#| out-width: 80%
+m_oda_outcome_funding$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_funding$model,
+                                 year_c = 0,
+                                 funding = seq(0, 4, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = funding, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_continuous(breaks = 0:4) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = "Barriers to funding", y = "Predicted ODA in the following year") +
+  theme_donors()
+```
+
+```{r cfx-mfx-funding}
+mfx_oda_cfx_multiple$funding %>% 
+  select(funding, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_dollar()(.)))
+```
+
+```{r cfx-mfx-funding-p-direction}
+mfx_funding_p_direction <- mfx_oda_cfx_multiple$funding %>% 
+  posteriordraws() %>% 
+  filter(funding == 1) %>% 
+  summarize(pd = sum(draw < 0) / n()) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r plot-cfx-mfx-funding}
+#| out-width: 80%
+mfx_oda_cfx_multiple$funding %>% 
+  posteriordraws() %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(funding))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
+  labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE > 0) = {pull(mfx_funding_p_direction, pd_short)}"), fill = NULL) +
+  theme_donors()
+```
+
+#### Core civil society index
+
+```{r plot-cfx-range-ccsi}
+#| out-width: 80%
+m_oda_outcome_ccsi$model_50 %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_ccsi$model_50,
+                                 year_c = 0,
+                                 v2xcs_ccsi = seq(0, 1, 0.1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = "Core civil society index", y = "Predicted ODA in the following year",
+       caption = "Higher values represent better respect for civil society") +
+  theme_donors()
+```
+
+```{r cfx-mfx-ccsi}
+mfx_oda_cfx_multiple$ccsi %>% 
+  select(v2xcs_ccsi, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_dollar()(.)))
+```
+
+```{r cfx-mfx-ccsi-p-direction}
+mfx_ccsi_p_direction <- mfx_oda_cfx_multiple$ccsi %>% 
+  posteriordraws() %>% 
+  filter(v2xcs_ccsi == 0.5) %>% 
+  summarize(pd = sum(draw < 0) / n()) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r plot-cfx-mfx-ccsi}
+#| out-width: 80%
+mfx_oda_cfx_multiple$ccsi %>% 
+  posteriordraws() %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(v2xcs_ccsi))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
+  labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE < 0) = {pull(mfx_ccsi_p_direction, pd_short)}"), fill = NULL) +
+  theme_donors()
+```
 
 :::
 
-##### Marginal effects
+### Combined plots
 
-::: {.panel-tabset group="outcome"}
-##### Total ODA
+#### Predictions
 
-##### Advocacy
+```{r build-cfx-predictions-combined}
+ci_cols <- c("grey70", "grey45", "grey20")
 
-##### Entry
+p1 <- m_oda_outcome_total$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_total$model,
+                                 year_c = 0,
+                                 barriers_total = seq(0, 10, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = barriers_total, y = .epred)) +
+  stat_lineribbon(aes(color = "Posterior median"), 
+                  alpha = 0.6, point_interval = median_hdci) +
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_color_manual(
+    values = clrs$PurpOr[7],
+    guide = guide_legend(order = 1, 
+                         override.aes = list(fill = NA, alpha = 1, color = "black"))
+  ) +
+  scale_fill_manual(
+    values = clrs$PurpOr[c(1, 3, 5)], 
+    labels = function(x) label_percent()(as.numeric(x)),
+    guide = guide_legend(order = 2, 
+                         override.aes = list(color = NA, fill = ci_cols))
+  ) +
+  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):") +
+  facet_wrap(vars("Total barriers")) +
+  theme_donors() + 
+  theme(legend.margin = margin(l = 7.5, r = 7.5))
 
-##### Funding
+p2 <- m_oda_outcome_advocacy$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_advocacy$model,
+                                 year_c = 0,
+                                 advocacy = seq(0, 2, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = advocacy, y = .epred)) +
+  stat_lineribbon(aes(color = "Posterior median"), 
+                  alpha = 0.6, point_interval = median_hdci) +
+  scale_x_continuous(breaks = 0:2) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_color_manual(
+    values = clrs$Teal[7],
+    guide = guide_legend(order = 1, 
+                         override.aes = list(fill = NA, alpha = 1, color = "black"))
+  ) +
+  scale_fill_manual(
+    values = clrs$Teal[c(1, 3, 5)], 
+    labels = function(x) label_percent()(as.numeric(x)),
+    guide = guide_legend(order = 2, 
+                         override.aes = list(color = NA, fill = ci_cols))
+  ) +
+  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):") +
+  facet_wrap(vars("Barriers to advocacy")) +
+  theme_donors() + 
+  theme(legend.margin = margin(l = 7.5, r = 7.5))
 
-##### Core civil society index
+p3 <- m_oda_outcome_entry$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_entry$model,
+                                 year_c = 0,
+                                 entry = seq(0, 3, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = entry, y = .epred)) +
+  stat_lineribbon(aes(color = "Posterior median"), 
+                  alpha = 0.6, point_interval = median_hdci) +
+  scale_x_continuous(breaks = 0:3) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_color_manual(
+    values = clrs$Emrld[7],
+    guide = guide_legend(order = 1, 
+                         override.aes = list(fill = NA, alpha = 1, color = "black"))
+  ) +
+  scale_fill_manual(
+    values = clrs$Emrld[c(1, 3, 5)], 
+    labels = function(x) label_percent()(as.numeric(x)),
+    guide = guide_legend(order = 2, 
+                         override.aes = list(color = NA, fill = ci_cols))
+  ) +
+  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):") +
+  facet_wrap(vars("Barriers to entry")) +
+  theme_donors() + 
+  theme(legend.margin = margin(l = 7.5, r = 7.5))
 
-:::
+p4 <- m_oda_outcome_funding$model %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_funding$model,
+                                 year_c = 0,
+                                 funding = seq(0, 4, 1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = funding, y = .epred)) +
+  stat_lineribbon(aes(color = "Posterior median"), 
+                  alpha = 0.6, point_interval = median_hdci) +
+  scale_x_continuous(breaks = 0:4) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_color_manual(
+    values = clrs$Peach[7],
+    guide = guide_legend(order = 1, 
+                         override.aes = list(fill = NA, alpha = 1, color = "black"))
+  ) +
+  scale_fill_manual(
+    values = clrs$Peach[c(1, 3, 5)], 
+    labels = function(x) label_percent()(as.numeric(x)),
+    guide = guide_legend(order = 2, 
+                         override.aes = list(color = NA, fill = ci_cols))
+  ) +
+  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):") +
+  facet_wrap(vars("Barriers to funding")) +
+  theme_donors() + 
+  theme(legend.margin = margin(l = 7.5, r = 7.5))
+```
+
+```{r plot-cfx-predictions-combined, fig.width=7, fig.height=5}
+#| out-width: 90%
+#| fig-cap: "The effect of de jure anti-NGO legal barriers on predicted levels 
+#|   of foreign aid in a typical country"
+
+# Put the shared y-axis label in a separate plot and add it to the combined plot
+# https://stackoverflow.com/a/66778622/120898
+p_lab <- ggplot() + 
+  annotate(geom = "text", x = 1, y = 1, angle = 90, size = 3.3, fontface = "bold",
+           label = "Predicted ODA in the following year") +
+  coord_cartesian(clip = "off") +
+  theme_void()
+
+(p_lab | 
+    ((p1 | p2) / (p3 | p4) + 
+       plot_layout(guides = "collect") + 
+       plot_annotation(theme = theme(legend.position = "bottom")))) + 
+  plot_layout(widths = c(0.05, 1))
+```
+
+```{r plot-cfx-predictions-ccsi, fig.width=5, fig.height=3.5}
+#| out-width: 65%
+#| fig-cap: "The effect of the de facto civil society legal environment on 
+#|   predicted levels of foreign aid in a typical country"
+m_oda_outcome_ccsi$model_50 %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_ccsi$model_50,
+                                 year_c = 0,
+                                 v2xcs_ccsi = seq(0, 1, 0.1)),
+              re_formula = NA) %>% 
+  ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
+  stat_lineribbon(aes(color = "Posterior median"), 
+                  alpha = 0.6, point_interval = median_hdci) +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.25)) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_color_manual(
+    values = clrs$Sunset[4],
+    guide = guide_legend(order = 1, 
+                         override.aes = list(fill = NA, alpha = 1))
+  ) +
+  scale_fill_manual(
+    values = clrs$Sunset[c(1, 2, 3)], 
+    labels = function(x) label_percent()(as.numeric(x)),
+    guide = guide_legend(order = 2, 
+                         override.aes = list(color = NA))
+  ) +
+  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):",
+       caption = "Higher values represent better respect for civil society") +
+  facet_wrap(vars("Core civil society index")) +
+  theme_donors() +
+  theme(legend.margin = margin(l = 7.5, r = 7.5))
+```
+
+
+#### Conditional marginal effects
+
+```{r calc-cfx-mfx-all}
+mfx_total_stats <- mfx_oda_cfx_single$total %>% 
+  posteriordraws() %>% 
+  summarize(pd = sum(draw < 0) / n(),
+            mad = mad(draw),
+            med_hdci = median_hdci(draw)) %>% 
+  unnest(med_hdci) %>% 
+  mutate(pd_short = round(pd, 2))
+
+mfx_advocacy_stats <- mfx_oda_cfx_single$advocacy %>% 
+  posteriordraws() %>% 
+  summarize(pd = sum(draw < 0) / n(),
+            mad = mad(draw),
+            med_hdci = median_hdci(draw)) %>% 
+  unnest(med_hdci) %>% 
+  mutate(pd_short = round(pd, 2))
+
+mfx_entry_stats <- mfx_oda_cfx_single$entry %>% 
+  posteriordraws() %>% 
+  summarize(pd = sum(draw < 0) / n(),
+            mad = mad(draw),
+            med_hdci = median_hdci(draw)) %>% 
+  unnest(med_hdci) %>% 
+  mutate(pd_short = round(pd, 2))
+
+mfx_funding_stats <- mfx_oda_cfx_single$funding %>% 
+  posteriordraws() %>% 
+  summarize(pd = sum(draw < 0) / n(),
+            mad = mad(draw),
+            med_hdci = median_hdci(draw)) %>% 
+  unnest(med_hdci) %>% 
+  mutate(pd_short = round(pd, 2))
+
+mfx_ccsi_stats <- mfx_oda_cfx_single$ccsi %>% 
+  posteriordraws() %>% 
+  summarize(pd = sum(draw < 0) / n(),
+            mad = mad(draw),
+            med_hdci = median_hdci(draw)) %>% 
+  unnest(med_hdci) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r build-cfx-mfx-combined}
+p1 <- mfx_oda_cfx_single$total %>% 
+  posteriordraws() %>% 
+  ggplot(aes(x = draw)) +
+  stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
+               fill = clrs$PurpOr[6], .width = c(0.8, 0.95),
+               point_interval = median_hdci) +
+  geom_vline(xintercept = 0, linewidth = 0.25) +
+  annotate(geom = "richtext", label = glue("P(ATE < 0) = {pull(mfx_total_stats, pd_short)}"),
+           x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
+           label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
+                                           style_negative = "minus")) +
+  scale_fill_ramp_discrete(from = clrs$PurpOr[4], guide = "none") +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  facet_wrap(vars("One additional barrier of any type")) +
+  theme_donors() +
+  theme(axis.text.y = element_blank())
+
+p2 <- mfx_oda_cfx_single$advocacy %>% 
+  posteriordraws() %>% 
+  ggplot(aes(x = draw)) +
+  stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
+               fill = clrs$Teal[4], .width = c(0.8, 0.95),
+               point_interval = median_hdci) +
+  geom_vline(xintercept = 0, linewidth = 0.25) +
+  annotate(geom = "richtext", label = glue("P(ATE > 0) = {1 - pull(mfx_advocacy_stats, pd_short)}"),
+           x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
+           label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
+                                           style_negative = "minus")) +
+  scale_fill_ramp_discrete(from = clrs$Teal[6], guide = "none") +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  facet_wrap(vars("One additional barrier to advocacy")) +
+  theme_donors() +
+  theme(axis.text.y = element_blank())
+
+p3 <- mfx_oda_cfx_single$entry %>% 
+  posteriordraws() %>% 
+  ggplot(aes(x = draw)) +
+  stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
+               fill = clrs$Emrld[4], .width = c(0.8, 0.95),
+               point_interval = median_hdci) +
+  geom_vline(xintercept = 0, linewidth = 0.25) +
+  annotate(geom = "richtext", label = glue("P(ATE > 0) = {1 - pull(mfx_entry_stats, pd_short)}"),
+           x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
+           label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
+                                           style_negative = "minus")) +
+  scale_fill_ramp_discrete(from = clrs$Emrld[6], guide = "none") +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  facet_wrap(vars("One additional barrier to entry")) +
+  theme_donors() +
+  theme(axis.text.y = element_blank())
+
+p4 <- mfx_oda_cfx_single$funding %>% 
+  posteriordraws() %>% 
+  ggplot(aes(x = draw)) +
+  stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
+               fill = clrs$Peach[6], .width = c(0.8, 0.95),
+               point_interval = median_hdci) +
+  geom_vline(xintercept = 0, linewidth = 0.25) +
+  annotate(geom = "richtext", label = glue("P(ATE < 0) = {pull(mfx_funding_stats, pd_short)}"),
+           x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
+           label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
+                                           style_negative = "minus")) +
+  scale_fill_ramp_discrete(from = clrs$Peach[4], guide = "none") +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  facet_wrap(vars("One additional barrier to funding")) +
+  theme_donors() +
+  theme(axis.text.y = element_blank())
+```
+
+```{r plot-cfx-mfx-combined, fig.width=7, fig.height=5.2}
+#| out-width: 90%
+#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on 
+#|   foreign aid in a typical country"
+p_lab <- ggplot() + 
+  annotate(geom = "text", x = 1, y = 1, size = 3.3, fontface = "bold",
+           label = "Conditional effect of treatment on ODA in the following year") +
+  coord_cartesian(clip = "off") +
+  theme_void()
+
+(((p1 | p2) / (p3 | p4)) / p_lab) + 
+  plot_layout(heights = c(1, 1, 0.1)) +
+  plot_annotation(caption = "Point shows median value;\nthick bar = 80% credible interval; thin bar = 95% credible interval")
+```
+
+```{r plot-cfx-mfx-ccsi-only, fig.width=5, fig.height=3.5}
+#| out-width: 65%
+#| fig-cap: "The effect of a 0.1 point increase in the de facto civil society 
+#|   legal environment on predicted levels of foreign aid in a typical country"
+mfx_oda_cfx_single$ccsi %>% 
+  posteriordraws() %>% 
+  mutate(draw = draw / 10) %>% 
+  ggplot(aes(x = draw)) +
+  stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
+               fill = clrs$Sunset[4], .width = c(0.8, 0.95),
+               point_interval = median_hdci) +
+  geom_vline(xintercept = 0, linewidth = 0.25) +
+  annotate(geom = "richtext", label = glue("P(ATE < 0) = {pull(mfx_ccsi_stats, pd_short)}"),
+           x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
+           label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
+                                           style_negative = "minus")) +
+  scale_fill_ramp_discrete(from = clrs$Sunset[3], guide = "none") +
+  labs(x = "Conditional effect of treatment on ODA in the following year", 
+       y = NULL, fill = NULL,
+       caption = "Point shows median value;\nthick bar = 80% credible interval; thin bar = 95% credible interval") +
+  facet_wrap(vars("A 0.1 unit increase in the core civil society index")) +
+  theme_donors() +
+  theme(axis.text.y = element_blank())
+```
+
+#### Table
+
+Because of how {marginaleffects} deals with link transformations, we can't get log-scale marginal effects that incorporate the hurdle process—the only way to incorporate hurdling is to use `type = "response"`, which uses `posterior_epred()` behind the scenes, which returns values on the dollar scale. This isn't {marginaleffects}'s fault, since `posterior_epred()` is the only way to get simultaneous results from both the non-hurdled and hurdled parts (since it's the average of the full posterior prediction, or $\textbf{E}[\operatorname{Hurdle\,log-normal}(\pi_{it}, \mu_{it_j}, \sigma_y)]$), and it only returns values on the original response scale.
+
+That's great, but it can also be helpful to think of percent changes (especially with these multi-million dollar values!). Fortunately we can find percent changes pretty easy with calculus:
+
+$$
+\text{\% change when $x$ is $a$} = \frac{f'(x \mid x = a)}{f(x \mid x = a)}
+$$
+
+```{r cfx-mfx-results-table}
+signif_100k <- label_dollar(accuracy = 1e5, 
+                            prefix = "\\$",
+                            style_negative = "minus")
+signif_pct <- label_percent(accuracy = 0.1,
+                            style_negative = "minus")
+
+mfx_lookup <- tribble(
+  ~term, ~Treatment,
+  "barriers_total", "One additional barrier of any type",
+  "advocacy", "One additional barrier to advocacy",
+  "entry", "One additional barrier to entry",
+  "funding", "One additional barrier to funding",
+  "v2xcs_ccsi", "A 0.1 unit increase in the core civil society index"
+) %>% 
+  mutate(Treatment = fct_inorder(Treatment))
+
+mfx_all_posteriors <- bind_rows(
+  posteriordraws(mfx_oda_cfx_single$total), 
+  posteriordraws(mfx_oda_cfx_single$advocacy), 
+  posteriordraws(mfx_oda_cfx_single$entry), 
+  posteriordraws(mfx_oda_cfx_single$funding),
+  posteriordraws(mfx_oda_cfx_single$ccsi) %>% mutate(draw = draw / 10)) 
+
+mfx_just_dollars <- mfx_all_posteriors %>% 
+  group_by(term) %>% 
+  median_hdci(draw) %>%
+  mutate(across(c(draw, .lower, .upper), ~signif_100k(.))) %>% 
+  mutate(interval = glue("[{.lower}, {.upper}]")) %>% 
+  select(term, draw, interval) %>% 
+  pivot_longer(c(draw, interval), values_to = "Average treatment effect") %>% 
+  select(-name) %>% 
+  group_by(term) %>% 
+  mutate(row_num = row_number()) %>% 
+  ungroup()
+
+mfx_just_pct <- mfx_all_posteriors %>% 
+  mutate(pct_change = draw / predicted) %>% 
+  group_by(term) %>% 
+  median_hdci(pct_change) %>% 
+  mutate(across(c(pct_change, .lower, .upper), ~signif_pct(.))) %>% 
+  mutate(pct_change_interval = glue("[{.lower}, {.upper}]")) %>% 
+  select(term, pct_change, pct_change_interval) %>% 
+  pivot_longer(c(pct_change, pct_change_interval), values_to = "Percent change in ODA") %>% 
+  select(-name) %>% 
+  group_by(term) %>% 
+  mutate(row_num = row_number()) %>% 
+  ungroup()
+
+mfx_p_direction <- mfx_all_posteriors %>% 
+  group_by(term) %>% 
+  summarize(`p < 0` = round(sum(draw < 0) / n(), 2),
+            `p > 0` = round(sum(draw > 0) / n(), 2)) %>% 
+  mutate(row_num = 1)
+
+mfx_just_dollars %>% 
+  left_join(mfx_just_pct, by = c("term", "row_num")) %>% 
+  left_join(mfx_p_direction, by = c("term", "row_num")) %>% 
+  left_join(mfx_lookup, by = "term") %>% 
+  arrange(Treatment) %>% 
+  mutate(Treatment = ifelse(row_num == 1, as.character(Treatment), NA)) %>% 
+  select(Treatment, everything(), -term, -row_num) %>% 
+  kbl(align = c("l", "c", "c", "c", "c")) %>% 
+  kable_styling(htmltable_class = "table table-sm light-border") %>% 
+  footnote(general = c("Reported values are posterior median conditional effects rounded to the nearest \$100,000.", 
+                       "95% HPDI intervals shown in brackets.",
+                       "Percent change calculated by dividing the treatment effect by the predicted value when the count of legal barriers is set to 1 (i.e. one barrier to advocacy, one barrier to entry, etc.), and where the core civil society index is set to 0.5."), 
+           footnote_as_chunk = TRUE)
+```
+
+
+### Within- and between-country variability
+
+```{r extract-sigmas-total, include=FALSE, warning=FALSE}
+sigmas_total <- m_oda_outcome_total$model %>% 
+  tidy(effects = "ran_pars") %>% 
+  select(-component, -effect) %>% 
+  filter(!str_starts(term, "cor")) %>% 
+  mutate(term = janitor::make_clean_names(term)) %>% 
+  split(~term)
+
+exupper <- 19 + round(sigmas_total$sd_observation$estimate, 1)
+exlower <- 19 - round(sigmas_total$sd_observation$estimate, 1)
+```
+
+The $\sigma$ terms are roughly the same across all these different models, so we'll just show the results from the total barriers model here. We have three $\sigma$ terms to work with:
+
+- $\sigma_y$ (`sd__Observation`): This is `r round(sigmas_total$sd_observation$estimate, 3)`, which means that within any country, their total ODA varies by `r round(sigmas_total$sd_observation$estimate, 1)` logged units, so if their baseline is $e^{19}$, their total aid will bounce around between $e^{`r exlower`}$ and $e^{`r exupper`}$.
+- $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): This is the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_total$sd_intercept$estimate, 2)`, which means that across or between countries, total ODA varies by `r round(sigmas_total$sd_intercept$estimate, 1)` logged units.
+- $\sigma_3$ (`sd__year_c` for the `gwcode` group): the variability between countries' year effects, or the variability around the $b_{3_j}$ offsets. Here it's `r round(sigmas_total$sd_year_c$estimate, 3)`, which means that average year effects vary by `r label_percent(suffix = "ish%")(sigmas_total$sd_year_c$estimate)` across or between countries.
+
+```{r show-sigmas-total, warning=FALSE}
+#| code-fold: show
+m_oda_outcome_total$model %>% 
+  tidy(effects = "ran_pars") %>% 
+  select(-component, -effect) %>% 
+  filter(!str_starts(term, "cor"))
+```
+
+
+### Full results table
+
+Again, this is less important since we don't care about individual coefficients and instead care about conditional effects, but for the sake of full transparency (and to placate future reviewers), here's a table of all the results:
+
+```{r tbl-h1-outcome, warning=FALSE}
+#| tbl-cap: Results from all outcome models
+models_tbl_h1_outcome_dejure <- models_tbl_h1_outcome_dejure %>% 
+  set_names(1:length(.))
+
+notes <- c(
+  "Posterior medians; 95% credible intervals (HDPI) in brackets.", 
+  "Total \\(R^2\\) considers the variance of both population and group effects;", 
+  "marginal \\(R^2\\) only takes population effects into account"
+)
+
+modelsummary(models_tbl_h1_outcome_dejure,
+             estimate = "{estimate}",
+             statistic = "[{conf.low}, {conf.high}]",
+             add_rows = outcome_rows,
+             coef_map = coefs_outcome,
+             gof_map = gofs,
+             output = "kableExtra",
+             fmt =  list(estimate = 2, conf.low = 2, conf.high = 2)) %>% 
+  row_spec(1, bold = TRUE) %>% 
+  kable_styling(htmltable_class = "table-sm light-border") %>% 
+  footnote(general = notes, footnote_as_chunk = TRUE)
+```
