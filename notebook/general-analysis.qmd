@@ -2,8 +2,6 @@
 title: "General analysis"
 author: "Suparna Chaudhry and Andrew Heiss"
 date: "`r format(Sys.time(), '%F')`"
-bibliography: "`r here::here('manuscript', 'bibliography.bib')`"
-csl: "`r here::here('manuscript', 'pandoc', 'csl', 'chicago-author-date.csl')`"
 link-citations: true
 editor_options: 
   chunk_output_type: console
