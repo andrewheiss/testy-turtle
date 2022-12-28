@@ -274,6 +274,49 @@ f_oda_treatment_ccsi <- function(dat) {
   return(lst(model_num, priors_num, model_denom, priors_denom))
 }
 
+f_oda_treatment_repress <- function(dat) {
+  # Numerator model
+  priors_num <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                  prior(student_t(3, 0, 1.5), class = b),
+                  prior(exponential(1), class = sigma),
+                  prior(exponential(1), class = sd))
+  
+  model_num <- brm(
+    bf(v2xcs_ccsi ~ v2csreprss_lag1 + v2csreprss_lag2_cumsum + (1 | gwcode),
+       decomp = "QR"),
+    data = dat,
+    family = gaussian(),
+    prior = priors_num,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+  
+  # Denominator model
+  priors_denom <- c(prior(student_t(3, 0, 1.5), class = Intercept),
+                    prior(student_t(3, 0, 1.5), class = b),
+                    prior(exponential(1), class = sigma),
+                    prior(exponential(1), class = sd),
+                    prior(lkj(2), class = cor))
+  
+  model_denom <- brm(
+    bf(v2xcs_ccsi ~ v2csreprss_lag1 + v2csreprss_lag2_cumsum + total_oda_z_lag1 +
+         v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
+         gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
+         internal_conflict_past_5 + natural_dis_count +
+         year_c + (1 + year_c | gwcode),
+       decomp = "QR"),
+    data = dat,
+    family = gaussian(),
+    prior = priors_denom,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+  
+  return(lst(model_num, priors_num, model_denom, priors_denom))
+}
+
 
 # Outcome models ----------------------------------------------------------
 
@@ -424,10 +467,79 @@ f_oda_outcome_ccsi <- function(dat) {
   return(lst(model_50, model_500, priors))
 }
 
+f_oda_outcome_ccsi <- function(dat) {
+  dat_50 <- dat %>% mutate(iptw = ifelse(iptw > 50, 50, iptw))
+  dat_500 <- dat %>% mutate(iptw = ifelse(iptw > 500, 500, iptw))
+  
+  priors <- c(prior(normal(20, 2.5), class = Intercept),
+              prior(normal(0, 2), class = b),
+              prior(exponential(1), class = sigma),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, -2, 1.5), class = Intercept, dpar = hu),
+              prior(student_t(3, 0, 1.5), class = b, dpar = hu))
+  
+  model_50 <- brm(
+    bf(total_oda_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum + 
+         year_c + (1 + year_c | gwcode),
+       hu ~ year_c + I(year_c^2),
+       decomp = "QR"),
+    data = dat_50,
+    family = hurdle_lognormal(),
+    prior = priors,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+  
+  model_500 <- brm(
+    bf(total_oda_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum +
+         year_c + (1 + year_c | gwcode),
+       hu ~ year_c + I(year_c^2),
+       decomp = "QR"),
+    data = dat_500,
+    family = hurdle_lognormal(),
+    prior = priors,
+    control = list(adapt_delta = 0.9, max_treedepth = 12),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2,
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+  
+  return(lst(model_50, model_500, priors))
+}
+
+f_oda_outcome_repress <- function(dat) {
+  dat_50 <- dat %>% mutate(iptw = ifelse(iptw > 50, 50, iptw))
+  dat_500 <- dat %>% mutate(iptw = ifelse(iptw > 500, 500, iptw))
+  
+  priors <- c(prior(normal(20, 2.5), class = Intercept),
+              prior(normal(0, 2), class = b),
+              prior(exponential(1), class = sigma),
+              prior(exponential(1), class = sd),
+              prior(lkj(2), class = cor),
+              prior(student_t(3, -2, 1.5), class = Intercept, dpar = hu),
+              prior(student_t(3, 0, 1.5), class = b, dpar = hu))
+  
+  model_50 <- brm(
+    bf(total_oda_lead1 | weights(iptw) ~ v2csreprss + v2csreprss_lag1_cumsum + 
+         year_c + (1 + year_c | gwcode),
+       hu ~ year_c + I(year_c^2),
+       decomp = "QR"),
+    data = dat_50,
+    family = hurdle_lognormal(),
+    prior = priors,
+    control = list(adapt_delta = 0.9),
+    chains = bayes_settings$chains, iter = bayes_settings$iter * 2, 
+    warmup = bayes_settings$warmup, seed = bayes_settings$seed$oda
+  )
+
+  return(lst(model_50, priors))
+}
+
 
 # Marginal and conditional effects ----------------------------------------
 
-f_mfx_oda_cfx_multiple <- function(model_total, model_advocacy, model_entry, model_funding, model_ccsi) {
+f_mfx_oda_cfx_multiple <- function(model_total, model_advocacy, model_entry, model_funding, model_ccsi, model_repress) {
   library(marginaleffects)
   
   set.seed(bayes_settings$seed$general)
@@ -477,10 +589,19 @@ f_mfx_oda_cfx_multiple <- function(model_total, model_advocacy, model_entry, mod
     re_formula = NA
   )
   
-  return(lst(total, advocacy, entry, funding, ccsi))
+  repress <- marginaleffects(
+    model_repress,
+    newdata = datagrid(year_c = 0,
+                       v2csreprss = c(-2, 0, 2)),
+    variables = "v2csreprss",
+    type = "response",
+    re_formula = NA
+  )
+  
+  return(lst(total, advocacy, entry, funding, ccsi, repress))
 }
 
-f_mfx_oda_cfx_single <- function(model_total, model_advocacy, model_entry, model_funding, model_ccsi) {
+f_mfx_oda_cfx_single <- function(model_total, model_advocacy, model_entry, model_funding, model_ccsi, model_repress) {
   library(marginaleffects)
   
   set.seed(bayes_settings$seed$general)
@@ -525,6 +646,14 @@ f_mfx_oda_cfx_single <- function(model_total, model_advocacy, model_entry, model
     re_formula = NA
   )
   
-  return(lst(total, advocacy, entry, funding, ccsi))
+  repress <- marginaleffects(
+    model_repress,
+    newdata = datagrid(year_c = 0, v2csreprss = 0),
+    variables = "v2csreprss",
+    type = "response",
+    re_formula = NA
+  )
+  
+  return(lst(total, advocacy, entry, funding, ccsi, repress))
 }
 

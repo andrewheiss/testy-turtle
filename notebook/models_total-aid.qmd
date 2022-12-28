@@ -63,17 +63,17 @@ df_country_aid_laws <- filter(df_country_aid, laws)
 # Treatment models
 tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
            m_oda_treatment_entry, m_oda_treatment_funding, 
-           m_oda_treatment_ccsi))
+           m_oda_treatment_ccsi, m_oda_treatment_repress))
 
 # IPTW data
 tar_load(c(df_oda_iptw_total, df_oda_iptw_advocacy, 
            df_oda_iptw_entry, df_oda_iptw_funding,
-           df_oda_iptw_ccsi))
+           df_oda_iptw_ccsi, df_oda_iptw_repress))
 
 # Outcome models
 tar_load(c(m_oda_outcome_total, m_oda_outcome_advocacy, 
            m_oda_outcome_entry, m_oda_outcome_funding,
-           m_oda_outcome_ccsi))
+           m_oda_outcome_ccsi, m_oda_outcome_repress))
 
 # Marginal/conditional effects
 tar_load(c(mfx_oda_cfx_multiple, mfx_oda_cfx_single))
@@ -102,6 +102,8 @@ coefs_num <- list(
   "b_funding_lag2_cumsum" = "Treatment history",
   "b_v2xcs_ccsi_lag1" = "Treatment (t − 1)",
   "b_v2xcs_ccsi_lag2_cumsum" = "Treatment history",
+  "b_v2csreprss_lag1" = "Treatment (t − 1)",
+  "b_v2csreprss_lag2_cumsum" = "Treatment history",
   "b_Intercept" = "Intercept",
   "sd_gwcode__Intercept" = "Between-country variability (\\(\\sigma_0\\) for \\(b_0\\) offsets)",
   "sigma" = "Model variability (\\(\\sigma_y\\))"
@@ -118,6 +120,8 @@ coefs_denom <- list(
   "b_funding_lag2_cumsum" = "Treatment history",
   "b_v2xcs_ccsi_lag1" = "Treatment (t − 1)",
   "b_v2xcs_ccsi_lag2_cumsum" = "Treatment history",
+  "b_v2csreprss_lag1" = "Treatment (t − 1)",
+  "b_v2csreprss_lag2_cumsum" = "Treatment history",
   "b_total_oda_z_lag1" = "Total ODA (standardized; t − 1)",
   "b_v2x_polyarchy" = "Polyarchy",
   "b_v2x_corr" = "Corruption index",
@@ -161,7 +165,8 @@ coefs_outcome <- list(
 )
 
 treatment_names <- c("Treatment", "Total barriers (t)", "Barriers to advocacy (t)", 
-                     "Barriers to entry (t)", "Barriers to funding (t)", "CCSI (t)")
+                     "Barriers to entry (t)", "Barriers to funding (t)", "CCSI (t)",
+                     "CS repression (t)")
 treatment_rows <- as.data.frame(t(treatment_names))
 attr(treatment_rows, "position") <- 1
 
@@ -171,6 +176,8 @@ outcome_rows <- as.data.frame(t(outcome_names))
 attr(outcome_rows, "position") <- 1
 ```
 
+- TODO: CS repression in combined plot
+- TODO: De facto results table
 
 # Weight models
 
@@ -500,6 +507,33 @@ plot_iptw_ccsi %>%
   ggplot(aes(x = iptw)) +
   geom_histogram(bins = 50, boundary = 0) +
   facet_wrap(vars(threshold), scales = "free_x") +
+  theme_donors()
+```
+
+### Civil society repression
+
+These weights are also horrendous, with a maximum weight of `r label_comma()(max(df_oda_iptw_repress$iptw))`.
+
+```{r iptws-csrepress}
+#| code-fold: show
+summary(df_oda_iptw_repress$iptw)
+```
+
+As with the core civil society index, there aren't a lot of observations with weights that high:
+
+```{r show-threshold-counts-iptws-csrepress}
+#| code-fold: show
+df_oda_iptw_repress %>% count(iptw >= 50)
+df_oda_iptw_repress %>% count(iptw >= 500)
+```
+
+So we truncate these weights at 50 again. Since the results from the core civil society models are basically the same when truncating at 500, we only use a truncation point of 50 here.
+
+```{r plot-iptws-csrepress}
+df_oda_iptw_ccsi %>% 
+  mutate(threshold = 50, iptw = ifelse(iptw > threshold, threshold, iptw)) %>% 
+  ggplot(aes(x = iptw)) +
+  geom_histogram(bins = 50, boundary = 0) +
   theme_donors()
 ```
 :::
@@ -1028,8 +1062,55 @@ mfx_oda_cfx_multiple$ccsi %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of\ncore civil society index on ODA in the following year", y = NULL,
        subtitle = glue("P(ATE < 0) = {pull(mfx_ccsi_p_direction, pd_short)}"), fill = NULL) +
+  theme_donors()
+```
+
+#### Civil society repression
+
+```{r plot-cfx-range-repress}
+#| out-width: 80%
+m_oda_outcome_repress$model_50 %>% 
+  epred_draws(newdata = datagrid(model = m_oda_outcome_repress$model_50,
+                                 year_c = 0,
+                                 v2csreprss = seq(-4, 3, 0.25)),
+              re_formula = NA)  %>% 
+  ggplot(aes(x = v2csreprss, y = .epred)) +
+  stat_lineribbon(color = clrs$Peach[7]) +
+  scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Peach[1:3]) +
+  guides(fill = "none") +
+  labs(x = "Civil society repression", y = "Predicted ODA in the following year",
+       caption = "Higher values represent better respect for civil society") +
+  theme_donors()
+```
+
+```{r cfx-mfx-repress}
+mfx_oda_cfx_multiple$repress %>% 
+  select(v2csreprss, dydx, conf.low, conf.high) %>% 
+  mutate(across(c(dydx, conf.low, conf.high), ~label_dollar()(.)))
+```
+
+```{r cfx-mfx-repress-p-direction}
+mfx_repress_p_direction <- mfx_oda_cfx_multiple$repress %>% 
+  posteriordraws() %>% 
+  filter(v2csreprss == 0) %>% 
+  summarize(pd = sum(draw < 0) / n()) %>% 
+  mutate(pd_short = round(pd, 2))
+```
+
+```{r plot-cfx-mfx-repress}
+#| out-width: 80%
+mfx_oda_cfx_multiple$repress %>% 
+  posteriordraws() %>% 
+  pivot_longer(draw) %>% 
+  ggplot(aes(x = value, fill = factor(v2csreprss))) +
+  stat_halfeye(alpha = 0.7) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
+  labs(x = "Conditional effect of\ncivil society repression on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE < 0) = {pull(mfx_repress_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
 
@@ -1382,7 +1463,8 @@ mfx_lookup <- tribble(
   "advocacy", "One additional barrier to advocacy",
   "entry", "One additional barrier to entry",
   "funding", "One additional barrier to funding",
-  "v2xcs_ccsi", "A 0.1 unit increase in the core civil society index"
+  "v2xcs_ccsi", "A 0.1 unit increase in the core civil society index",
+  "v2csreprss", "A 1 unit increase in civil society repression"
 ) %>% 
   mutate(Treatment = fct_inorder(Treatment))
 
@@ -1391,7 +1473,8 @@ mfx_all_posteriors <- bind_rows(
   posteriordraws(mfx_oda_cfx_single$advocacy), 
   posteriordraws(mfx_oda_cfx_single$entry), 
   posteriordraws(mfx_oda_cfx_single$funding),
-  posteriordraws(mfx_oda_cfx_single$ccsi) %>% mutate(draw = draw / 10)) 
+  posteriordraws(mfx_oda_cfx_single$ccsi) %>% mutate(draw = draw / 10),
+  posteriordraws(mfx_oda_cfx_single$repress)) 
 
 mfx_just_dollars <- mfx_all_posteriors %>% 
   group_by(term) %>% 
@@ -1433,7 +1516,7 @@ mfx_just_dollars %>%
   select(Treatment, everything(), -term, -row_num) %>% 
   kbl(align = c("l", "c", "c", "c", "c")) %>% 
   kable_styling(htmltable_class = "table table-sm light-border") %>% 
-  footnote(general = c("Reported values are posterior median conditional effects rounded to the nearest \$100,000.", 
+  footnote(general = c("Reported values are posterior median conditional effects rounded to the nearest \\$100,000.", 
                        "95% HPDI intervals shown in brackets.",
                        "Percent change calculated by dividing the treatment effect by the predicted value when the count of legal barriers is set to 1 (i.e. one barrier to advocacy, one barrier to entry, etc.), and where the core civil society index is set to 0.5."), 
            footnote_as_chunk = TRUE)
