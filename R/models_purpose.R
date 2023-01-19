@@ -279,7 +279,7 @@ f_purpose_treatment_repress <- function(dat) {
                   prior(exponential(1), class = sd))
   
   model_num <- brm(
-    bf(v2xcs_ccsi ~ v2xcs_ccsi_lag1 + v2xcs_ccsi_lag2_cumsum + (1 | gwcode),
+    bf(v2csreprss ~ v2csreprss_lag1 + v2csreprss_lag2_cumsum + (1 | gwcode),
        decomp = "QR"),
     data = dat,
     family = gaussian(),
@@ -297,7 +297,7 @@ f_purpose_treatment_repress <- function(dat) {
                     prior(lkj(2), class = cor))
   
   model_denom <- brm(
-    bf(v2xcs_ccsi ~ v2csreprss_lag1 + v2csreprss_lag2_cumsum + prop_contentious_lag1 +
+    bf(v2csreprss ~ v2csreprss_lag1 + v2csreprss_lag2_cumsum + prop_contentious_lag1 +
          v2x_polyarchy + v2x_corr + v2x_rule + v2x_civlib + v2x_clphy + v2x_clpriv +
          gdpcap_log_z + un_trade_pct_gdp + v2peedueq + v2pehealth + e_peinfmor +
          internal_conflict_past_5 + natural_dis_count +
@@ -439,8 +439,7 @@ f_purpose_outcome_ccsi <- function(dat) {
     mutate(prop_contentious_lead1 = ifelse(prop_contentious_lead1 == 1, 0.99, prop_contentious_lead1))
   
   dat_50 <- dat %>% mutate(iptw = ifelse(iptw > 50, 50, iptw))
-  dat_500 <- dat %>% mutate(iptw = ifelse(iptw > 500, 500, iptw))
-  
+
   priors <- c(prior(student_t(3, 0, 1.5), class = Intercept),
               prior(student_t(3, 0, 1.5), class = b),
               prior(exponential(1), class = phi),
@@ -463,21 +462,7 @@ f_purpose_outcome_ccsi <- function(dat) {
     warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
   )
   
-  model_500 <- brm(
-    bf(prop_contentious_lead1 | weights(iptw) ~ v2xcs_ccsi + v2xcs_ccsi_lag1_cumsum +
-         year_c + (1 + year_c | gwcode),
-       zi ~ year_c + I(year_c^2),
-       decomp = "QR"),
-    data = dat_500,
-    family = zero_inflated_beta(),
-    prior = priors,
-    init = 0,
-    control = list(adapt_delta = 0.9, max_treedepth = 12),
-    chains = bayes_settings$chains, iter = bayes_settings$iter * 2,
-    warmup = bayes_settings$warmup, seed = bayes_settings$seed$purpose
-  )
-  
-  return(lst(model_50, model_500, priors))
+  return(lst(model_50, priors))
 }
 
 f_purpose_outcome_repress <- function(dat) {
