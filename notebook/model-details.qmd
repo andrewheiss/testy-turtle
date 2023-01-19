@@ -156,7 +156,7 @@ model_time_h2 %>%
 ```
 
 ```{r set-computer-details, include=FALSE}
-computer_details <- "2021 M1 MacBook Pro with 10 cores and 32 GB of RAM, using Stan through brms through cmdstanr"
+computer_details <- "2021 M1 MacBook Pro with 32 GB of RAM, with 4 MCMC chains spread across 8 cores, with two CPU threads per chain, using Stan through brms through cmdstanr"
 
 model_time_all <- bind_rows(total_row_h1, total_row_h2)
 
