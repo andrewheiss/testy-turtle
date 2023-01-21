@@ -1087,6 +1087,12 @@ trim_oecd <- function(df) {
   df %>% filter(year != 2013)
 }
 
+# AidData ends at 2013, so all the oda_lead variables in 2013 are 0
+# USAID only tracks channels after 2000
+trim_usaid <- function(df) {
+  df %>% filter(year > 2000 & year < 2013)
+}
+
 winsorize_one <- function(df) {
   df <- df %>% 
     # Winsorize prop_contentious for the two cases that are exactly 1
