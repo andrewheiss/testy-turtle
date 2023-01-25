@@ -38,6 +38,8 @@ tar_load(c(m_oda_prelim_time_only_total, m_purpose_prelim_time_only_total))
 
 df_country_aid <- tar_read(country_aid_final)
 df_country_aid_laws <- filter(df_country_aid, laws)
+df_country_aid_usaid <- df_country_aid_laws %>% 
+  filter(year > 2000 & year < 2013)
 
 # Tell bayesplot to use the sunset palette for things like pp_check()
 bayesplot::color_scheme_set(clrs$Sunset[2:7])
@@ -61,8 +63,8 @@ All of our outcome variables have a substantial and nontrivial number of zeros i
 bind_rows(
   `Total ODA (H1)` = count(df_country_aid_laws, is_zero = total_oda == 0),
   `Proportion of contentious aid (H2)` = count(df_country_aid_laws, is_zero = prop_contentious == 0),
-  `Proportion of aid to domestic NGOs (H3)` = count(df_country_aid_laws, is_zero = prop_ngo_dom == 0),
-  `Proportion of aid to foreign NGOs (H3)` = count(df_country_aid_laws, is_zero = prop_ngo_foreign == 0),
+  `Proportion of aid to domestic NGOs (H3)` = count(df_country_aid_usaid, is_zero = prop_ngo_dom == 0),
+  `Proportion of aid to foreign NGOs (H3)` = count(df_country_aid_usaid, is_zero = prop_ngo_foreign == 0),
   .id = "Outcome"
 ) %>% 
   group_by(Outcome) %>% 
@@ -139,7 +141,7 @@ p1 <- df_country_aid_laws %>%
   theme_donors() +
   theme(legend.position = "bottom")
 
-p2 <- df_country_aid_laws %>%
+p2 <- df_country_aid_usaid %>%
   mutate(is_zero = prop_ngo_dom == 0) %>% 
   mutate(prop_ngo_dom = ifelse(is_zero, -0.05, prop_ngo_dom))  %>%  
   ggplot(aes(x = prop_ngo_dom)) +
@@ -155,7 +157,7 @@ p2 <- df_country_aid_laws %>%
   theme_donors() +
   theme(legend.position = "bottom")
 
-p3 <- df_country_aid_laws %>%
+p3 <- df_country_aid_usaid %>%
   mutate(is_zero = prop_ngo_foreign == 0) %>% 
   mutate(prop_ngo_foreign = ifelse(is_zero, -0.05, prop_ngo_foreign))  %>%  
   ggplot(aes(x = prop_ngo_foreign)) +
@@ -1197,8 +1199,7 @@ df_country_aid_laws %>%
 
 ```{r plot-all-prop-ngo-domestic, fig.width=6, fig.height=3.5}
 #| out-width: 80%
-df_country_aid_laws %>% 
-  filter(year >= 2000) %>% 
+df_country_aid_usaid %>% 
   mutate(prop_ngo_dom = ifelse(prop_ngo_dom == 0, -0.05, prop_ngo_dom)) %>% 
   ggplot(aes(x = year, y = prop_ngo_dom)) +
   geom_line(aes(group = country), linewidth = 0.075, alpha = 0.5) +
@@ -1214,8 +1215,7 @@ df_country_aid_laws %>%
 
 ```{r plot-all-prop-ngo-foreign, fig.width=6, fig.height=3.5}
 #| out-width: 80%
-df_country_aid_laws %>% 
-  filter(year >= 2000) %>% 
+df_country_aid_usaid %>% 
   mutate(prop_ngo_foreign = ifelse(prop_ngo_foreign == 0, -0.05, prop_ngo_foreign)) %>% 
   ggplot(aes(x = year, y = prop_ngo_foreign)) +
   geom_line(aes(group = country), linewidth = 0.075, alpha = 0.5) +
