@@ -24,6 +24,9 @@ library(ggdag)
 library(dagitty)
 library(here)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
 invisible(list2env(tar_read(misc_funs), .GlobalEnv))
 

@@ -8,8 +8,8 @@ library(tibble)
 # This hardcodes the absolute path in _targets.yaml, so to make this more
 # portable, we rewrite it every time this pipeline is run (and we don't track
 # _targets.yaml with git)
-tar_config_set(store = here::here('_targets'))
-tar_config_set(script = here::here('_targets.R'))
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
 
 # General variables
 csl <- "pandoc/csl/apa.csl"
@@ -41,15 +41,15 @@ set.seed(7305)  # From random.org
 tar_option_set(packages = c("tidyverse"),
                format = "qs")
 
-source("R/graphics.R")
-source("R/misc.R")
-source("R/funs_data-cleaning.R")
-source("R/funs_details.R")
-source("R/funs_models-iptw.R")
-source("R/models_oda.R")
-source("R/models_purpose.R")
-source("R/models_recipients.R")
-source("R/funs_notebook.R")
+source(here::here("R", "graphics.R"))
+source(here::here("R", "misc.R"))
+source(here::here("R", "funs_data-cleaning.R"))
+source(here::here("R", "funs_details.R"))
+source(here::here("R", "funs_models-iptw.R"))
+source(here::here("R", "models_oda.R"))
+source(here::here("R", "models_purpose.R"))
+source(here::here("R", "models_recipients.R"))
+source(here::here("R", "funs_notebook.R"))
 
 # here::here() returns an absolute path, which then gets stored in tar_meta and
 # becomes computer-specific (i.e. /Users/andrew/Research/blah/thing.Rmd).

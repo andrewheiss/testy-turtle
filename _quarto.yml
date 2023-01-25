@@ -8,7 +8,6 @@ project:
     watch-inputs: false
     navigate: true
 
-  execute-dir: project
   render:
     # Render all .qmd files
     - "**/*.qmd"

@@ -15,6 +15,9 @@ library(tidyverse)
 library(targets)
 library(scales)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 # Load graphics functions from targets
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
 
@@ -46,7 +49,7 @@ show_nice_pal <- function(pal, nrow = 1, show_text = TRUE) {
 
 # Fonts
 
-```{css echo=FALSE}
+```{scss echo=FALSE}
 @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
 
 @font-face {

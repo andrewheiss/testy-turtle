@@ -15,6 +15,9 @@ library(targets)
 library(scales)
 library(patchwork)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 font_opts <- list(extra.preamble = c("\\usepackage{libertine}", 
                                      "\\usepackage{libertinust1math}"),
                   dvisvgm.opts = "--font-format=woff")
@@ -44,7 +47,7 @@ details <- df_country_aid_laws %>%
 
 Our data includes information about `r details$num_countries` countries across `r details$num_years` years (from `r details$year_first`–`r details$year_last`). This kind of time series cross-sectional (TSCS) data reflects a natural hierarchical structure, with repeated yearly observations nested within countries ([see this whole guide I wrote](https://www.andrewheiss.com/blog/2021/12/01/multilevel-models-panel-data-guide/) because of this exact project)
 
-```{tikz panel-structure, engine.opts=font_opts}
+```{tikz panel-structure-svg, engine.opts=font_opts}
 #| echo: false
 #| fig-cap: "Multilevel panel data structure, with yearly observations of $y$ nested in countries"
 #| fig-align: center

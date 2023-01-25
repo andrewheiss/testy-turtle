@@ -27,6 +27,9 @@ library(kableExtra)
 library(sf)
 library(here)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 # Load things from targets
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
 invisible(list2env(tar_read(misc_funs), .GlobalEnv))
@@ -299,10 +302,10 @@ fig_dvs <- (fig_oecd_aid + fig_oecd_contention) /
         legend.box.margin = margin(t = -0.5, unit = "lines"))
 
 fig_dvs
-ggsave(here("analysis", "output", "fig-dvs.pdf"), fig_dvs,
-       width = 6.5, height = 4.75, device = cairo_pdf)
-ggsave(here("analysis", "output", "fig-dvs.png"), fig_dvs,
-       width = 6.5, height = 4.75, res = 300, device = ragg::agg_png)
+# ggsave(here("analysis", "output", "fig-dvs.pdf"), fig_dvs,
+#        width = 6.5, height = 4.75, device = cairo_pdf)
+# ggsave(here("analysis", "output", "fig-dvs.png"), fig_dvs,
+#        width = 6.5, height = 4.75, res = 300, device = ragg::agg_png)
 ```
 
 
@@ -433,10 +436,10 @@ barriers_summary <-
         legend.box.margin = margin(t = -0.5, unit = "lines"))
 
 barriers_summary
-ggsave(here("analysis", "output", "fig-barriers-summary.pdf"), barriers_summary,
-       width = 6.5, height = 6, device = cairo_pdf)
-ggsave(here("analysis", "output", "fig-barriers-summary.png"), barriers_summary,
-       width = 6.5, height = 6, res = 300, device = ragg::agg_png)
+# ggsave(here("analysis", "output", "fig-barriers-summary.pdf"), barriers_summary,
+#        width = 6.5, height = 6, device = cairo_pdf)
+# ggsave(here("analysis", "output", "fig-barriers-summary.png"), barriers_summary,
+#        width = 6.5, height = 6, res = 300, device = ragg::agg_png)
 ```
 
 ## Compulsory vs. burdensome registration
@@ -467,10 +470,10 @@ fig_regulation_burden <- ggplot(df_regulation,
   facet_wrap(vars(autocracy))
 
 fig_regulation_burden
-ggsave(here("analysis", "output", "fig-regulation-burden.pdf"), fig_dvs,
-       width = 6, height = 2.5, device = cairo_pdf)
-ggsave(here("analysis", "output", "fig-regulation-burden.png"), fig_dvs,
-       width = 6, height = 2.5, res = 300, device = ragg::agg_png)
+# ggsave(here("analysis", "output", "fig-regulation-burden.pdf"), fig_dvs,
+#        width = 6, height = 2.5, device = cairo_pdf)
+# ggsave(here("analysis", "output", "fig-regulation-burden.png"), fig_dvs,
+#        width = 6, height = 2.5, res = 300, device = ragg::agg_png)
 ```
 
 
@@ -677,10 +680,10 @@ plot_civicus_map <- ggplot() +
         legend.key.size = unit(0.7, "lines"))
 
 plot_civicus_map
-ggsave(here("analysis", "output", "fig-civicus-map.pdf"), plot_civicus_map,
-       width = 5.5, height = 3, device = cairo_pdf)
-ggsave(here("analysis", "output", "fig-civicus-map-new.png"), plot_civicus_map,
-       width = 5.5, height = 3, res = 300, device = ragg::agg_png)
+# ggsave(here("analysis", "output", "fig-civicus-map.pdf"), plot_civicus_map,
+#        width = 5.5, height = 3, device = cairo_pdf)
+# ggsave(here("analysis", "output", "fig-civicus-map-new.png"), plot_civicus_map,
+#        width = 5.5, height = 3, res = 300, device = ragg::agg_png)
 ```
 
 

@@ -18,6 +18,9 @@ library(kableExtra)
 library(lubridate)
 library(here)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 # Treatment models
 tar_load(c(m_oda_treatment_total, m_oda_treatment_advocacy, 
            m_oda_treatment_entry, m_oda_treatment_funding, 

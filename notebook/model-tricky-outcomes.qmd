@@ -25,6 +25,9 @@ library(broom.mixed)
 library(marginaleffects)
 library(extraDistr)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 set.seed(1234)
 
 # Load stuff from targets

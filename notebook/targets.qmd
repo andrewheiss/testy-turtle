@@ -14,6 +14,9 @@ knitr::opts_chunk$set(fig.align = "center", fig.retina = 3,
 options(digits = 3, width = 120,
         dplyr.summarise.inform = FALSE,
         knitr.kable.NA = "")
+
+targets::tar_config_set(store = here::here('_targets'),
+                        script = here::here('_targets.R'))
 ```
 
 # targets pipeline
@@ -26,6 +29,7 @@ Here's our complete pipeline:
 
 ```{r show-targets-pipeline, echo=TRUE}
 library(targets)
+
 tar_glimpse()
 ```
 

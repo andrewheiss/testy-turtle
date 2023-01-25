@@ -23,6 +23,9 @@ library(DT)
 library(kableExtra)
 library(naniar)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
+
 # Generated via random.org
 set.seed(376)
 
