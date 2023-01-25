@@ -412,7 +412,7 @@ withr::with_seed(1234, {
 IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. When they're big, it's a good idea to truncate them at some reasonable level.
 
 ::: {.panel-tabset}
-### Total ODA
+### Total barriers
 
 The max weight here is `r round(max(df_oda_iptw_total$iptw), 0)`, but there are only a handful of observations with weights that high. The average is `r round(mean(df_oda_iptw_total$iptw), 2)` and the median is `r round(median(df_oda_iptw_total$iptw), 2)`, which are both close to 1, so we're good.
 
@@ -770,7 +770,7 @@ m_oda_outcome_total$priors %>%
 
 ## MCMC diagnostics
 
-To check that everything converged nicely, we check some diagnostics for the weight models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
+To check that everything converged nicely, we check some diagnostics for the outcome models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
 
 ::: {.panel-tabset}
 

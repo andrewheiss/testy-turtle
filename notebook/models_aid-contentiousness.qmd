@@ -373,7 +373,7 @@ withr::with_seed(1234, {
 IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. When they're big, it's a good idea to truncate them at some reasonable level.
 
 ::: {.panel-tabset}
-### Total ODA
+### Total barriers
 
 The max weight here is `r round(max(df_purpose_iptw_total$iptw), 0)`, but there are only a handful of observations with weights that high. The average is `r round(mean(df_purpose_iptw_total$iptw), 2)` and the median is `r round(median(df_purpose_iptw_total$iptw), 2)`, which are both close to 1, so we're good.
 
@@ -564,7 +564,7 @@ modelsummary(models_tbl_h2_treatment_denom,
 Our outcome variable for this hypothesis is the proportion of aid allocated to contentious issues, which is (1) bounded between 0% and 100% and (2) has a lot of zeros.
 
 ```{r tbl-zero-summary}
-#| tbl-cap: 0s in total ODA
+#| tbl-cap: 0s in proportion of contentious aid
 df_country_aid_laws %>% 
   count(is_zero = prop_contentious == 0) %>% 
   mutate(Outcome = "Proportion of contentious aid") %>% 
@@ -716,7 +716,7 @@ m_purpose_outcome_total$priors %>%
 
 ## MCMC diagnostics
 
-To check that everything converged nicely, we check some diagnostics for the weight models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
+To check that everything converged nicely, we check some diagnostics for the outcome models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
 
 ::: {.panel-tabset}
 
@@ -1567,7 +1567,7 @@ ggplot() +
   theme_donors()
 ```
 
-- $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_intercept$estimate, 2)`, which means that across or between countries, the proportion of contentious aid by 0.5ish logit units.
+- $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_intercept$estimate, 2)`, which means that across or between countries, the proportion of contentious aid varies by 0.5ish logit units.
 
 - $\sigma_3$ (`sd__year_c` for the `gwcode` group): the variability between countries' year effects, or the variability around the $b_{3_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_year_c$estimate, 2)`, which means that average year effects vary by 0.04 logit units across or between countries.
 
