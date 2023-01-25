@@ -63,6 +63,7 @@ list(
   ## Helper functions ----
   tar_target(graphic_functions, lst(theme_donors, theme_donors_map, 
                                     set_annotation_fonts, clrs, pts)),
+  tar_target(modelsummary_functions, lst(gofs, coefs_num, coefs_denom, coefs_outcome)),
   tar_target(misc_funs, lst(matrix_from_vector)),
   
   ## Raw data files ----

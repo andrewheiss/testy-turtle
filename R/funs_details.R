@@ -13,6 +13,110 @@ build_modelsummary <- function(models) {
   return(msl)
 }
 
+gofs <- tribble(
+  ~raw,          ~clean,     ~fmt, ~omit,
+  "nobs",        "N",        0,    FALSE,
+  "r.squared",   "\\(R^2\\) (total)",    2,    FALSE,
+  "r2.marginal", "\\(R^2\\) (marginal)", 2, FALSE
+)
+
+coefs_num <- list(
+  "b_barriers_total_lag1" = "Treatment (t − 1)",
+  "b_barriers_total_lag2_cumsum" = "Treatment history",
+  "b_advocacy_lag1" = "Treatment (t − 1)",
+  "b_advocacy_lag2_cumsum" = "Treatment history",
+  "b_entry_lag1" = "Treatment (t − 1)",
+  "b_entry_lag2_cumsum" = "Treatment history",
+  "b_funding_lag1" = "Treatment (t − 1)",
+  "b_funding_lag2_cumsum" = "Treatment history",
+  "b_v2xcs_ccsi_lag1" = "Treatment (t − 1)",
+  "b_v2xcs_ccsi_lag2_cumsum" = "Treatment history",
+  "b_v2csreprss_lag1" = "Treatment (t − 1)",
+  "b_v2csreprss_lag2_cumsum" = "Treatment history",
+  "b_Intercept" = "Intercept",
+  "sd_gwcode__Intercept" = "Between-country variability (\\(\\sigma_0\\) for \\(b_0\\) offsets)",
+  "sigma" = "Model variability (\\(\\sigma_y\\))"
+)
+
+coefs_denom <- list(
+  # Treatments
+  "b_barriers_total_lag1" = "Treatment (t − 1)",
+  "b_barriers_total_lag2_cumsum" = "Treatment history",
+  "b_advocacy_lag1" = "Treatment (t − 1)",
+  "b_advocacy_lag2_cumsum" = "Treatment history",
+  "b_entry_lag1" = "Treatment (t − 1)",
+  "b_entry_lag2_cumsum" = "Treatment history",
+  "b_funding_lag1" = "Treatment (t − 1)",
+  "b_funding_lag2_cumsum" = "Treatment history",
+  "b_v2xcs_ccsi_lag1" = "Treatment (t − 1)",
+  "b_v2xcs_ccsi_lag2_cumsum" = "Treatment history",
+  "b_v2csreprss_lag1" = "Treatment (t − 1)",
+  "b_v2csreprss_lag2_cumsum" = "Treatment history",
+  
+  # Lagged outcomes
+  "b_total_oda_z_lag1" = "Total ODA (standardized; t − 1)",
+  "b_prop_contentious_lag1" = "Proportion of contentious aid (t − 1)",
+  "b_prop_ngo_dom_lag1" = "Proportion of USAID aid to domestic NGOs (t − 1)",
+  "b_prop_ngo_foreign_lag1" = "Proportion of USAID aid to foreign NGOs (t − 1)",
+  
+  # Confounders
+  "b_v2x_polyarchy" = "Polyarchy",
+  "b_v2x_corr" = "Corruption index",
+  "b_v2x_rule" = "Rule of law index",
+  "b_v2x_civlib" = "Civil liberties index",
+  "b_v2x_clphy" = "Physical violence index",
+  "b_v2x_clpriv" = "Private civil liberties index",
+  "b_gdpcap_log_z" = "Log GDP/capita (standardized)",
+  "b_un_trade_pct_gdp" = "Percent of GDP from trade",
+  "b_v2peedueq" = "Educational equality index",
+  "b_v2pehealth" = "Health equality index",
+  "b_e_peinfmor" = "Infant mortality rate",
+  "b_internal_conflict_past_5TRUE" = "Internal conflict in past 5 years",
+  "b_natural_dis_count" = "Count of natural disasters",
+  
+  # Other coefficients
+  "b_Intercept" = "Intercept",
+  "b_year_c" = "Year trend",
+  
+  # Multilevel and Bayesian things
+  "sd_gwcode__Intercept" = "Between-country intercept variability (\\(\\sigma_0\\) for \\(b_0\\) offsets)",
+  "sd_gwcode__year_c" = "Between-country year variability (\\(\\sigma_{17}\\) for \\(b_{17}\\) offsets)",
+  "cor_gwcode__Intercept__year_c" = "Correlation between random intercepts and slopes (\\(\\rho\\))",
+  "sigma" = "Model variability (\\(\\sigma_y\\))"
+)
+
+coefs_outcome <- list(
+  # Treatments
+  "b_barriers_total" = "Treatment (t − 1)",
+  "b_barriers_total_lag1_cumsum" = "Treatment history",
+  "b_advocacy" = "Treatment (t − 1)",
+  "b_advocacy_lag1_cumsum" = "Treatment history",
+  "b_entry" = "Treatment (t − 1)",
+  "b_entry_lag1_cumsum" = "Treatment history",
+  "b_funding" = "Treatment (t − 1)",
+  "b_funding_lag1_cumsum" = "Treatment history",
+  
+  # Other coefficients
+  "b_Intercept" = "Intercept",
+  "b_year_c" = "Year",
+  
+  # Model-related things
+  "b_hu_year_c" = "Hurdle part: Year",
+  "b_hu_Iyear_cE2" = "Hurdle part: Year²",
+  "b_hu_Intercept" = "Hurdle part: Intercept",
+  
+  "b_zi_year_c" = "Zero-inflated part: Year",
+  "b_zi_Iyear_cE2" = "Zero-inflated part: Year²",
+  "b_zi_Intercept" = "Zero-inflated part: Intercept",
+  
+  # Multilevel and Bayesian things
+  "sd_gwcode__Intercept" = "Between-country intercept variability (\\(\\sigma_0\\) for \\(b_0\\) offsets)",
+  "sd_gwcode__year_c" = "Between-country year variability (\\(\\sigma_3\\) for \\(b_3\\) offsets)",
+  "cor_gwcode__Intercept__year_c" = "Correlation between random intercepts and slopes (\\(\\rho\\))",
+  "sigma" = "Model variability (\\(\\sigma_y\\))",
+  "phi" = "Model dispersion (\\(\\phi_y\\))"
+)
+
 
 create_vars_table <- function() {
   vars <- tribble(
