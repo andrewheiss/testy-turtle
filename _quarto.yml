@@ -65,7 +65,6 @@ website:
           contents:
             - notebook/why-hierarchical-models.qmd
             - notebook/model-tricky-outcomes.qmd
-            - notebook/model-bayesian-iptw.qmd
         - section: "Actual models"
           contents:
             - notebook/model-details.qmd
