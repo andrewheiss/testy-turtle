@@ -70,3 +70,13 @@ div.sidebar-item-container .active {
 .nav-footer-right {
   text-align: right;
 }
+
+
+// kableExtra or modelsummary or Quarto or *something* injects `border-bottom: 0` 
+// into the inline <table style=XXX> for modelsummary tables when there are notes 
+// with multiple lines (most esoteric bug ever!). This nukes the light grey bottom 
+// border color that Bootstrap uses, which makes the tables ugly. So this class 
+// forces the light grey border back on.
+.light-border {
+  border-bottom-color: var(--bs-gray-300) !important;
+}
