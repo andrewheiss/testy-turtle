@@ -183,7 +183,7 @@ $$
 
 ## MCMC diagnostics
 
-Just to make sure everything converged nicely, we check some diagnostics for the weight models for the total barriers treatment. All the other models look basically the same as this—everything's fine.
+Again, as a check to make sure these weight models converged, here are some visual diagnostics for the total barriers treatment. All the other models look basically the same as these.
 
 ### Numerator
 
@@ -280,15 +280,14 @@ withr::with_seed(1234, {
 :::
 
 
-
 ## Check weights
 
-IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. When they're big, it's a good idea to truncate them at some reasonable level.
+Again, IPTWs should generally have a mean of 1 and shouldn't be too incredibly high.
 
 ::: {.panel-tabset}
 ### Total barriers
 
-The max weight here is `r round(max(df_purpose_iptw_total$iptw), 0)`, but there are only a handful of observations with weights that high. The average is `r round(mean(df_purpose_iptw_total$iptw), 2)` and the median is `r round(median(df_purpose_iptw_total$iptw), 2)`, which are both close to 1, so we're good.
+The max weight here is `r round(max(df_purpose_iptw_total$iptw), 0)`, but as with H~1~ there are only a few observations with weights that high. The average is `r round(mean(df_purpose_iptw_total$iptw), 2)` and the median is `r round(median(df_purpose_iptw_total$iptw), 2)`, which are both close to 1, which is good.
 
 ```{r iptws-total-oda}
 #| code-fold: show
@@ -304,7 +303,7 @@ df_purpose_iptw_total %>%
 
 ### Advocacy
 
-The max weight here is `r round(max(df_purpose_iptw_advocacy$iptw), 0)` which is lovely. The average is `r round(mean(df_purpose_iptw_advocacy$iptw), 2)`, so we're good.
+The max weight here is `r round(max(df_purpose_iptw_advocacy$iptw), 0)`, and the average is `r round(mean(df_purpose_iptw_advocacy$iptw), 2)`, so we're good still.
 
 ```{r iptws-advocacy}
 #| code-fold: show
@@ -320,7 +319,7 @@ df_purpose_iptw_advocacy %>%
 
 ### Entry
 
-The max weight here is `r round(max(df_purpose_iptw_entry$iptw), 0)` which is grand. The average is `r round(mean(df_purpose_iptw_entry$iptw), 2)`, so we're golden.
+The max weight here is `r round(max(df_purpose_iptw_entry$iptw), 0)` and the average is `r round(mean(df_purpose_iptw_entry$iptw), 2)`, so everything's still great.
 
 ```{r iptws-entry}
 #| code-fold: show
@@ -336,7 +335,7 @@ df_purpose_iptw_entry %>%
 
 ### Funding
 
-The max weight here is `r round(max(df_purpose_iptw_funding$iptw), 0)` which is fine. The average is `r round(mean(df_purpose_iptw_funding$iptw), 2)`, so all is well.
+The max weight is `r round(max(df_purpose_iptw_funding$iptw), 0)` and the average is `r round(mean(df_purpose_iptw_funding$iptw), 2)`—great!
 
 ```{r iptws-funding}
 #| code-fold: show
@@ -352,14 +351,14 @@ df_purpose_iptw_funding %>%
 
 ### Core civil society index
 
-lol these blow up again. The max weight is `r label_comma()(max(df_purpose_iptw_ccsi$iptw))`, which, oh no.
+lol these blow up again; the max weight is `r label_comma()(max(df_purpose_iptw_ccsi$iptw))`.
 
 ```{r iptws-ccsi}
 #| code-fold: show
 summary(df_purpose_iptw_ccsi$iptw)
 ```
 
-There aren't a lot of observations with weights that high though. Check out the counts of rows with weights greater than 50 and greater than 500—only 100ish:
+There aren't a lot of observations with weights that high though—only 100ish:
 
 ```{r show-threshold-counts-iptws-ccsi}
 #| code-fold: show
@@ -679,16 +678,14 @@ withr::with_seed(1234, {
 
 ## Analyzing the posterior
 
-TODO
-
 ### Average treatment effects (global analysis)
 
-We care most about conditional effects. That's what our main estimand is—the effect of treatment when all offsets are set to 0. 
+In this project we care most about *conditional effects*, or the effect of the treatment in a typical country, or effect of the treatment when all country-specific $b_0$ and $b_3$ estimates are set to 0.
 
 ::: {.panel-tabset}
 #### Total barriers
 
-In general, contentious aid doesn't really change as additional legal barriers are added:
+In general, contentious aid doesn't really change at all as additional legal barriers are added. The slope of the line is 0.02 percentage points, with a credible interval that ranges between -0.2 and 0.25 percentage points. The effect is essentially zero.
 
 ```{r plot-cfx-range-total}
 #| out-width: 80%
@@ -706,8 +703,6 @@ m_purpose_outcome_total$model %>%
   labs(x = "Total barriers", y = "Predicted proportion of\ncontentious aid in the following year") +
   theme_donors()
 ```
-
-The slope of this line is tiny across the whole range of de jure restriction.
 
 ```{r cfx-mfx-total}
 mfx_purpose_cfx_multiple$total %>% 
@@ -738,7 +733,7 @@ mfx_purpose_cfx_multiple$total %>%
 
 #### Advocacy
 
-Contentious aid *increases* in response to restrictions on advocacy.
+Contentious aid *increases* a little in response to restrictions on advocacy. The marginal effect when moving from 1 to 2 advocacy restrictions is half a percentage point, and the probability that it's greater than zero is 0.85.
 
 ```{r plot-cfx-range-advocacy}
 #| out-width: 80%
@@ -785,7 +780,7 @@ mfx_purpose_cfx_multiple$advocacy %>%
 
 #### Entry
 
-Contentious aid *increases* in response to restrictions on entry.
+Contentious aid *increases* a little in response to restrictions on entry. The marginal effect is 0.3 percentage points, and the probability that it's greater than zero is 0.89.
 
 ```{r plot-cfx-range-entry}
 #| out-width: 80%
@@ -832,7 +827,7 @@ mfx_purpose_cfx_multiple$entry %>%
 
 #### Funding
 
-Contentious aid *decreases* in response to restrictions on funding.
+Contentious aid *decreases* a little in response to restrictions on funding. The marginal effect is -0.3 percentage points, and the probability that it's less than 0 is 0.87.
 
 ```{r plot-cfx-range-funding}
 #| out-width: 80%
@@ -879,7 +874,7 @@ mfx_purpose_cfx_multiple$funding %>%
 
 #### Core civil society index
 
-Contentious aid doesn't do much in response to changes in the de facto civil society environment.
+Contentious aid doesn't do much in response to changes in the de facto civil society environment. The official marginal effect is 0.01 percentage points (basically zero!) and the probability that it's greater than zero is only 0.64.
 
 ```{r plot-cfx-range-ccsi}
 #| out-width: 80%
@@ -926,7 +921,7 @@ mfx_purpose_cfx_multiple$ccsi %>%
 
 #### Civil society repression
 
-Contentious aid *increases* as repression decreases/improves.
+However, contentious aid *increases* as repression decreases or improves a little (0.16 percentage points, with a 100% probability of being greater than zero). Or in reverse, as civil society gets worse, contentious aid *decreases* (following @Bush:2015). This is interesting since it's the opposite-ish for de jure restrictions—when barriers to advocacy and entry are enacted, contentious aid increases a little bit. But when the practical lived level of civil society repression increases, contentious aid drops. 
 
 ```{r plot-cfx-range-repress}
 #| out-width: 80%

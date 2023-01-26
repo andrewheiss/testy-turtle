@@ -3,7 +3,7 @@ title: "H~3~: Effect of anti-NGO crackdown on aid recipients"
 format:
   html:
     code-fold: true
-    toc-depth: 5
+    toc-depth: 6
     knitr:
       opts_chunk:
         out.width: "80%"
@@ -258,7 +258,7 @@ $$
 
 ## MCMC diagnostics
 
-Just to make sure everything converged nicely, we check some diagnostics for the weight models for the total barriers treatment for domestic NGO recipients. All the other models look basically the same as this—everything's fine.
+Once again, we verify that everything converged by checking diagnostics for the weight models for the total barriers treatment for domestic NGO recipients. All the other models look basically the same as this—everything is once again fine.
 
 ### Numerator
 
@@ -357,7 +357,7 @@ withr::with_seed(1234, {
 
 ## Check weights
 
-IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. When they're big, it's a good idea to truncate them at some reasonable level.
+As always, IPTWs should generally have a mean of 1 and shouldn't be too incredibly high.
 
 :::: {.panel-tabset}
 
@@ -366,7 +366,7 @@ IPTWs should generally have a mean of 1 and shouldn't be too incredibly high. Wh
 ::: {.panel-tabset}
 #### % of aid to domestic NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_total_dom$iptw), 0)`, but there are only a handful of observations with weights that high. The average is `r round(mean(df_recip_iptw_total_dom$iptw), 2)` and the median is `r round(median(df_recip_iptw_total_dom$iptw), 2)`, which are both essentially 1, so we're good.
+The max weight here is `r round(max(df_recip_iptw_total_dom$iptw), 0)`, but once again only a few observations have weights that high. The average is `r round(mean(df_recip_iptw_total_dom$iptw), 2)` and the median is `r round(median(df_recip_iptw_total_dom$iptw), 2)`, which are both essentially 1. Lovely.
 
 ```{r iptws-total-oda-dom}
 #| code-fold: show
@@ -382,7 +382,7 @@ df_recip_iptw_total_dom %>%
 
 #### % of aid to foreign NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_total_foreign$iptw), 0)`, but there are only a handful of observations with weights that high. The average is `r round(mean(df_recip_iptw_total_foreign$iptw), 2)` and the median is `r round(median(df_recip_iptw_total_foreign$iptw), 2)`, which are both essentially 1, so we're still good.
+Same here. The max weight is `r round(max(df_recip_iptw_total_foreign$iptw), 0)`, with an average of `r round(mean(df_recip_iptw_total_foreign$iptw), 2)` and a median of `r round(median(df_recip_iptw_total_foreign$iptw), 2)`, which are both essentially 1, so we're still good.
 
 ```{r iptws-total-oda-foreign}
 #| code-fold: show
@@ -419,7 +419,7 @@ df_recip_iptw_advocacy_dom %>%
 
 #### % of aid to foreign NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_advocacy_foreign$iptw), 0)` which is lovely. The average is `r round(mean(df_recip_iptw_advocacy_foreign$iptw), 2)`, so we're good.
+The max weight here is `r round(max(df_recip_iptw_advocacy_foreign$iptw), 0)` and the average is `r round(mean(df_recip_iptw_advocacy_foreign$iptw), 2)`, so we're good.
 
 ```{r iptws-advocacy-foreign}
 #| code-fold: show
@@ -440,7 +440,7 @@ df_recip_iptw_advocacy_foreign %>%
 ::: {.panel-tabset}
 #### % of aid to domestic NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_entry_dom$iptw), 0)` which is grand. The average is `r round(mean(df_recip_iptw_entry_dom$iptw), 2)`, so we're golden.
+The max weight here is `r round(max(df_recip_iptw_entry_dom$iptw), 0)` which is grand. The average is `r round(mean(df_recip_iptw_entry_dom$iptw), 2)`, so we're once again good.
 
 ```{r iptws-entry-dom}
 #| code-fold: show
@@ -456,7 +456,7 @@ df_recip_iptw_entry_dom %>%
 
 #### % of aid to foreign NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_entry_foreign$iptw), 0)` which is grand. The average is `r round(mean(df_recip_iptw_entry_foreign$iptw), 2)`, so we're golden.
+The max weight here is `r round(max(df_recip_iptw_entry_foreign$iptw), 0)`and the average is `r round(mean(df_recip_iptw_entry_foreign$iptw), 2)`. Yay.
 
 ```{r iptws-entry-foreign}
 #| code-fold: show
@@ -477,7 +477,7 @@ df_recip_iptw_entry_foreign %>%
 ::: {.panel-tabset}
 #### % of aid to domestic NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_funding_dom$iptw), 0)` which is fine. The average is `r round(mean(df_recip_iptw_funding_dom$iptw), 2)`, so all is well.
+The max weight is `r round(max(df_recip_iptw_funding_dom$iptw), 0)` which is fine, and the average is `r round(mean(df_recip_iptw_funding_dom$iptw), 2)`, so all is well.
 
 ```{r iptws-funding-dom}
 #| code-fold: show
@@ -493,7 +493,7 @@ df_recip_iptw_funding_dom %>%
 
 #### % of aid to foreign NGO recipients
 
-The max weight here is `r round(max(df_recip_iptw_funding_foreign$iptw), 0)` which is fine. The average is `r round(mean(df_recip_iptw_funding_foreign$iptw), 2)`, so all is well.
+The max weight here is `r round(max(df_recip_iptw_funding_foreign$iptw), 0)` with an average of `r round(mean(df_recip_iptw_funding_foreign$iptw), 2)`, so all is still well.
 
 ```{r iptws-funding-foreign}
 #| code-fold: show
@@ -514,7 +514,7 @@ df_recip_iptw_funding_foreign %>%
 ::: {.panel-tabset}
 #### % of aid to domestic NGO recipients
 
-lol these blow up again. The max weight is `r label_comma()(max(df_recip_iptw_ccsi_dom$iptw))`, which, oh no.
+lol, as with the other hypotheses, these once again blow up. The max weight is `r label_comma()(max(df_recip_iptw_ccsi_dom$iptw))`.
 
 ```{r iptws-ccsi-dom}
 #| code-fold: show
@@ -548,7 +548,7 @@ plot_iptw_ccsi_dom %>%
 
 #### % of aid to foreign NGO recipients
 
-lol these blow up again. The max weight is `r label_comma()(max(df_recip_iptw_ccsi_foreign$iptw))`, which, oh no.
+Same here—these blow up in a comically huge way.
 
 ```{r iptws-ccsi-foreign}
 #| code-fold: show
@@ -604,7 +604,7 @@ df_recip_iptw_ccsi_dom %>%
 
 #### % of aid to foreign NGO recipients
 
-lol these blow up again. The max weight is `r label_comma()(max(df_recip_iptw_repress_foreign$iptw))`, which, oh no.
+Once again, lolz.
 
 ```{r iptws-csrepress-foreign}
 #| code-fold: show
@@ -814,7 +814,7 @@ p2 <- df_country_aid_laws %>%
 
 Because of this distribution, we use a zero-inflated beta family to model the outcome. [This guide to working with tricky outcomes with lots of zeros](model-tricky-outcomes.qmd#zero-inflated-models-proportions) explores all the intricacies of zero-inflated beta families, so we won't go into tons of detail here.
 
-As with foreign aid, we’re not entirely sure what the actual underlying zero process is for the proportion of contentious aid, but from looking at the data, we know that there’s a time component—in the early 2000s, very few countries received no contentious aid. We thus model the zero-inflated part of the model with year and year squared since the year trend is parabolic and nonlinear.
+As with total foreign aid and aid contentiousness, we’re not entirely sure what the actual underlying zero process is for the proportion of aid to different recipients. There's definitely a time-related aspect—aid to both kinds of NGOs decreases over time (replaced with corresponding increases to  governments and multilateral organizations like regional development banks). The trend is fairly linear, but to stay consistent with our hurdle and zero-inflated modeling strategies from the previous hypotheses, we still include year squared in the model.
 
 ```{r plot-prop-zero-zi, fig.width=8, fig.height=3.5}
 #| out-width: 90%
@@ -995,12 +995,16 @@ withr::with_seed(1234, {
 
 ### Average treatment effects
 
+Just like the other hypotheses, we look at *conditional effects* here, or the effect of these various kinds of civil society restrictions in a typical country (where the country-specific $b$ offsets are set to zero).
+
 :::: {.panel-tabset}
 
 #### Total barriers
 
 ::: {.panel-tabset}
 ##### % of aid to domestic NGO recipients
+
+Additional barriers of any type lead to a tiny more aid to domestic NGOs, with an average increase of 0.18 percentage points (and the probability of being greater than zero is 0.97). This encompasses multiple countervailing trends though, since barriers to advocacy decrease the amount and other barriers increase it.
 
 ```{r plot-cfx-range-total-dom}
 #| out-width: 80%
@@ -1047,6 +1051,8 @@ mfx_recip_cfx_multiple_dom$total %>%
 ```
 
 ##### % of aid to foreign NGO recipients
+
+Additional legal barriers of any type slightly increase the proportion allocated to foreign NGOs by 0.34 percentage points, but the probability that that's greater than zero is only 0.72.
 
 ```{r plot-cfx-range-total-foreign}
 #| out-width: 80%
@@ -1098,6 +1104,8 @@ mfx_recip_cfx_multiple_foreign$total %>%
 ::: {.panel-tabset}
 ##### % of aid to domestic NGO recipients
 
+The story of advocacy laws is fascinating!. Additional barriers to advocacy decrease the amount of aid allocated to domestic NGOs, with a marginal effect of -0.6 percentage points (and a probability of being less than zero of 0.92). 
+
 ```{r plot-cfx-range-advocacy-dom}
 #| out-width: 80%
 m_recip_outcome_advocacy_dom$model %>% 
@@ -1142,6 +1150,8 @@ mfx_recip_cfx_multiple_dom$advocacy %>%
 ```
 
 ##### % of aid to foreign NGO recipients
+
+In contrast, however, additional barriers to advocacy increase the amount of aid allocated to foreign NGOs, with a marginal effect of 3 percentage points (and a probability of being greater than zero of 0.88)
 
 ```{r plot-cfx-range-advocacy-foreign}
 #| out-width: 80%
@@ -1193,6 +1203,8 @@ mfx_recip_cfx_multiple_foreign$advocacy %>%
 ::: {.panel-tabset}
 ##### % of aid to domestic NGO recipients
 
+Additional barriers to entry increase the proportion of aid allocated to domestic NGOs, with a marginal effect of 0.4 percentage points (and a probability of being greater than zero of 0.97).
+
 ```{r plot-cfx-range-entry-dom}
 #| out-width: 80%
 m_recip_outcome_entry_dom$model %>% 
@@ -1237,6 +1249,8 @@ mfx_recip_cfx_multiple_dom$entry %>%
 ```
 
 ##### % of aid to foreign NGO recipients
+
+Barriers to entry kind of increase the amount of aid given to foreign NGOs too, but the signal is a little weaker and uncertain. The marginal effect is almost 1 percentage point (0.95), but the probability that that's greater than zero is 0.82.
 
 ```{r plot-cfx-range-entry-foreign}
 #| out-width: 80%
@@ -1288,6 +1302,8 @@ mfx_recip_cfx_multiple_foreign$entry %>%
 ::: {.panel-tabset}
 ##### % of aid to domestic NGO recipients
 
+Additional barriers to funding increase the proportion of aid given to domestic NGOs, with a marginal effect of half a percentage point (0.47), which is definitely greater than zero (0.98).
+
 ```{r plot-cfx-range-funding-dom}
 #| out-width: 80%
 m_recip_outcome_funding_dom$model %>% 
@@ -1332,6 +1348,8 @@ mfx_recip_cfx_multiple_dom$funding %>%
 ```
 
 ##### % of aid to foreign NGO recipients
+
+Additional barriers to funding also increase the amount of aid allocated to foreign NGOs, but the effect is far more uncertain here. The median is 0.43 percentage points, but the probability of being greater than zero is only 0.64—there's a good chance it could be negative or nothing at all.
 
 ```{r plot-cfx-range-funding-foreign}
 #| out-width: 80%
@@ -1383,20 +1401,23 @@ mfx_recip_cfx_multiple_foreign$funding %>%
 ::: {.panel-tabset}
 ##### % of aid to domestic NGO recipients
 
+De facto civil society regulations tell a slightly different story. As the general legal environment gets worse, the proportion of aid allocated to dometic NGOs decreases, with a marginal effect of 0.15 percentage points (and a 100% probability of being positive). 
+
 ```{r plot-cfx-range-ccsi-dom}
 #| out-width: 80%
 m_recip_outcome_ccsi_dom$model_50 %>% 
   epred_draws(newdata = datagrid(model = m_recip_outcome_ccsi_dom$model_50,
                                  year_c = 0,
-                                 v2xcs_ccsi = seq(0, 1, 0.1)),
+                                 v2xcs_ccsi = seq(1, 0, -0.1)),
               re_formula = NA) %>% 
   ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
   stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_reverse() +
   scale_y_continuous(labels = label_percent()) +
   scale_fill_manual(values = clrs$Peach[1:3]) +
   guides(fill = "none") +
   labs(x = "Core civil society index", y = "Predicted proportion of\naid to domestic NGOs in the following year",
-       caption = "Higher values represent better respect for civil society") +
+       caption = "x-axis reversed; lower values represent worse respect for civil society") +
   theme_donors()
 ```
 
@@ -1418,7 +1439,7 @@ mfx_ccsi_p_direction_dom <- mfx_recip_cfx_multiple_dom$ccsi %>%
 mfx_recip_cfx_multiple_dom$ccsi %>% 
   posteriordraws() %>% 
   pivot_longer(draw) %>% 
-  ggplot(aes(x = value, fill = factor(v2xcs_ccsi))) +
+  ggplot(aes(x = -value, fill = factor(v2xcs_ccsi))) +
   stat_halfeye(alpha = 0.7) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
   labs(x = "Conditional effect of\ncore civil society index on ODA in the following year", y = NULL,
@@ -1427,6 +1448,8 @@ mfx_recip_cfx_multiple_dom$ccsi %>%
 ```
 
 ##### % of aid to foreign NGO recipients
+
+In contrast, a worsening environment for civil society causes a substantial increase in the proportion of aid allocated to foreign NGOs, with a huge marginal effect of 2.7 percentage points (and 100% chance of being positive). USAID seems to rely heavily on foreign NGOs in countries with restrictive civil society.
 
 ```{r plot-cfx-range-ccsi-foreign}
 #| out-width: 80%
@@ -1437,11 +1460,12 @@ m_recip_outcome_ccsi_foreign$model_50 %>%
               re_formula = NA) %>% 
   ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
   stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_reverse() +
   scale_y_continuous(labels = label_percent()) +
   scale_fill_manual(values = clrs$Peach[1:3]) +
   guides(fill = "none") +
   labs(x = "Core civil society index", y = "Predicted proportion of\naid to foreign NGOs in the following year",
-       caption = "Higher values represent better respect for civil society") +
+       caption = "x-axis reversed; lower values represent worse respect for civil society") +
   theme_donors()
 ```
 
@@ -1463,7 +1487,7 @@ mfx_ccsi_p_direction_foreign <- mfx_recip_cfx_multiple_foreign$ccsi %>%
 mfx_recip_cfx_multiple_foreign$ccsi %>% 
   posteriordraws() %>% 
   pivot_longer(draw) %>% 
-  ggplot(aes(x = value, fill = factor(v2xcs_ccsi))) +
+  ggplot(aes(x = -value, fill = factor(v2xcs_ccsi))) +
   stat_halfeye(alpha = 0.7) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
   labs(x = "Conditional effect of\ncore civil society index on ODA in the following year", y = NULL,
@@ -1478,6 +1502,8 @@ mfx_recip_cfx_multiple_foreign$ccsi %>%
 ::: {.panel-tabset}
 ##### % of aid to domestic NGO recipients
 
+With civil society repression, there's again a slightly different story. Worsening repression leads to a little more aid allocated to domestic NGOs, with a marginal effect of 0.13 percentage points (and a 100% probability that that's positive).
+
 ```{r plot-cfx-range-repress-dom}
 #| out-width: 80%
 m_recip_outcome_repress_dom$model_50 %>% 
@@ -1487,11 +1513,12 @@ m_recip_outcome_repress_dom$model_50 %>%
               re_formula = NA)  %>% 
   ggplot(aes(x = v2csreprss, y = .epred)) +
   stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_reverse() +
   scale_y_continuous(labels = label_percent()) +
   scale_fill_manual(values = clrs$Peach[1:3]) +
   guides(fill = "none") +
   labs(x = "Civil society repression", y = "Predicted proportion of\naid to domestic NGOs in the following year",
-       caption = "Higher values represent better respect for civil society") +
+       caption = "x-axis reversed; lower values represent worse civil society repression") +
   theme_donors()
 ```
 
@@ -1513,7 +1540,7 @@ mfx_repress_p_direction_dom <- mfx_recip_cfx_multiple_dom$repress %>%
 mfx_recip_cfx_multiple_dom$repress %>% 
   posteriordraws() %>% 
   pivot_longer(draw) %>% 
-  ggplot(aes(x = value, fill = factor(v2csreprss))) +
+  ggplot(aes(x = -value, fill = factor(v2csreprss))) +
   stat_halfeye(alpha = 0.7) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
   labs(x = "Conditional effect of\ncivil society repression on ODA in the following year", y = NULL,
@@ -1522,6 +1549,8 @@ mfx_recip_cfx_multiple_dom$repress %>%
 ```
 
 ##### % of aid to foreign NGO recipients
+
+Even more striking, though, is USAID's response with foreign NGO recipients. As civil society repression increases, **WAY** more aid is sent through foreign NGOs, with a marginal effect of 5.5 percentage points(!) (and a 100% probability of being positive).
 
 ```{r plot-cfx-range-repress-foreign}
 #| out-width: 80%
@@ -1532,11 +1561,12 @@ m_recip_outcome_repress_foreign$model_50 %>%
               re_formula = NA)  %>% 
   ggplot(aes(x = v2csreprss, y = .epred)) +
   stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_reverse() +
   scale_y_continuous(labels = label_percent()) +
   scale_fill_manual(values = clrs$Peach[1:3]) +
   guides(fill = "none") +
   labs(x = "Civil society repression", y = "Predicted proportion of\naid to foreign NGOs in the following year",
-       caption = "Higher values represent better respect for civil society") +
+       caption = "x-axis reversed; lower values represent worse civil society repression") +
   theme_donors()
 ```
 

@@ -90,8 +90,6 @@ outcome_rows <- as.data.frame(t(outcome_names))
 attr(outcome_rows, "position") <- 1
 ```
 
-- TODO: CS repression in combined plot
-- TODO: De facto results table
 
 # Weight models
 
@@ -734,11 +732,9 @@ withr::with_seed(1234, {
 
 ## Analyzing the posterior
 
-TODO
-
 ### Average treatment effects (global analysis)
 
-TODO: We care most about conditional effects. That's what our main estimand is—the effect of treatment when all offsets are set to 0. 
+In this project we care most about *conditional effects*, or the effect of the treatment in a typical country, or effect of the treatment when all country-specific $b_0$ and $b_3$ estimates are set to 0. That's also what our main estimand is. We could also calculate marginal effects, or the effect of the treatment across all countries on average, which would require integrating out the random effects, but we're most interested in the effect in a typical average country instead.
 
 ::: {.panel-tabset}
 #### Total barriers
@@ -795,6 +791,8 @@ mfx_oda_cfx_multiple$total %>%
 
 #### Advocacy
 
+Here, total ODA increases significantly and substantially with the addition of new barriers to advocacy, with an increase of \$130 to \$200 million more ODA, depending on the initial count of legal barriers. Moving from 1 to 2 represents a 24% increase in aid.
+
 ```{r plot-cfx-range-advocacy}
 #| out-width: 80%
 m_oda_outcome_advocacy$model %>% 
@@ -841,6 +839,8 @@ mfx_oda_cfx_multiple$advocacy %>%
 ```
 
 #### Entry
+
+Adding additional barriers to entry doesn't have much of an effect. It's technically positive, but the probability that the slope is greater than zero is only 0.65.
 
 ```{r plot-cfx-range-entry}
 #| out-width: 80%
@@ -889,6 +889,8 @@ mfx_oda_cfx_multiple$entry %>%
 
 #### Funding
 
+An additional barrier to funding leads to a 5ish% decrease in aid, but the probability that the decrease is negative is only 0.78.
+
 ```{r plot-cfx-range-funding}
 #| out-width: 80%
 m_oda_outcome_funding$model %>% 
@@ -936,6 +938,8 @@ mfx_oda_cfx_multiple$funding %>%
 
 #### Core civil society index
 
+Improvements in the core civil society index lead to a tiny decrease in aid (a 1% drop, on average), and the probability that the effect is negative is 0.93. This is not an issue of punishment—donor countries aren't withholding aid as countries improve. Instead, it's helpful to think of this in reverse—as civil society gets worse in a country, aid increases a tiny bit.
+
 ```{r plot-cfx-range-ccsi}
 #| out-width: 80%
 m_oda_outcome_ccsi$model_50 %>% 
@@ -982,6 +986,8 @@ mfx_oda_cfx_multiple$ccsi %>%
 ```
 
 #### Civil society repression
+
+If we look at civil society repression in particular, we see the same effect. Improvements in civil society repression lead to 3% less aid (with p = 1 that it's negative), or in reverse, more civil society repression leads to *more* aid. This is likely driven by the barriers to advocacy that we saw earlier.
 
 ```{r plot-cfx-range-repress}
 #| out-width: 80%
