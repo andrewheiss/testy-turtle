@@ -37,6 +37,9 @@ Icon?
 admin/*
 sandbox/*
 
+# Script for sending things to RStudio's Background Jobs panel
+job-stuff.R
+
 /.quarto/
 
 /.luarc.json
