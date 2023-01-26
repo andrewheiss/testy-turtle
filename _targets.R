@@ -514,12 +514,15 @@ list(
   # ## Analysis notebook ----
   # tar_notebook_pages()
   
-  tar_target(softbib_exclude, c("base", "tools", "rstudioapi", "bookdown", 
-                                "mgcv", "pingr", "rlang", "shiny", "shinybusy", 
-                                "shinyWidgets", "withr")),
+  tar_target(softbib_exclude, 
+             c("base", "bookdown", "bs4Dash", "car", "clustermq", "fixest", 
+               "fs", "future", "grid", "Hmisc", "mgcv", "pingr", "qs", 
+               "rlang", "rstudioapi", "shiny", "shinybusy", "shinyWidgets", 
+               "tictoc", "tools", "withr")),
   tar_target(softbib_keys, softbib::softbib(output = NULL, exclude = softbib_exclude)),
-  tar_target(softbib_bib, softbib::softbib(output = "softbib.bib", 
-                                           output_dir = here_rel("notebook")))#,
+  tar_target(softbib_bib, 
+             softbib::softbib(output = here::here("notebook", "softbib.bib"), 
+                              exclude = softbib_exclude))#,
   
   # This is only here to trigger a re-build of the R Markdown website's
   # supporting files in `_site`, which copies the files in `output` to

@@ -4,18 +4,12 @@ nocite: "`r paste0('@', targets::tar_read(softbib_keys), collapse = ', ')`"
 bibliography: softbib.bib
 ---
 
+```{r link-to-targets, include=FALSE}
+library(targets)
 
+tar_config_set(store = here::here('_targets'),
+               script = here::here('_targets.R'))
 
-```{r eval=FALSE, include=FALSE}
-things_to_exclude <- c("base", "tools", "rstudioapi", "bookdown", 
-                       "mgcv", "pingr", "rlang", "shiny", "shinybusy", 
-                       "shinyWidgets", "withr")
-
-keys <- softbib(exclude = things_to_exclude, output = NULL)
-paste0("@", keys, collapse = ", ")
-
-asdf <- softbib(exclude = things_to_exclude, output = "softbib.bib", 
-        output_dir = here::here("notebook"))
-
+# We don't do anything here really---this is just to build a {targets} dependency to this file
+keys <- targets::tar_read(softbib_bib)
 ```
-
