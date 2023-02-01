@@ -79,3 +79,29 @@ pts <- function(x) {
   as.numeric(grid::convertUnit(grid::unit(x, "pt"), "mm"))
 }
 
+# Functions for the sparkchart bar chart things in the results tables
+spark_bar <- function(df) {
+  ggplot(df, aes(x = pd, y = "")) +
+    geom_col(fill = "grey20") +
+    geom_text(aes(label = pd_nice), hjust = 1.4, color = "white", 
+              size = 6, fontface = "bold") +
+    scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) +
+    theme_void() +
+    theme(panel.background = element_rect(fill = "grey90", linewidth = 0))
+}
+
+save_sparks <- function(gg, name) {
+  width <- 4
+  height <- 0.45
+  
+  ggsave(glue("{name}.pdf"), gg, 
+         width = width, height = height,
+         device = cairo_pdf)
+  
+  ggsave(glue("{name}.png"), gg, 
+         width = width, height = height,
+         res = 300, device = ragg::agg_png)
+  
+  return(c(pdf = glue("{name}.pdf"), png = glue("{name}.png")))
+}

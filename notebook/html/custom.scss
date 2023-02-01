@@ -80,3 +80,25 @@ div.sidebar-item-container .active {
 .light-border {
   border-bottom-color: var(--bs-gray-300) !important;
 }
+
+// Make images in kableExtra tables take up the full width of their parent containers
+.table img {
+  width: 100%;
+  height: 100%;
+}
+
+.table tfoot {
+  font-size: 0.85em;
+}
+
+.table tfoot td {
+  padding-top: 0.3em !important;
+}
+
+.table tfoot tr:first-child td {
+  padding-top: 1em !important;
+}
+
+.table tfoot tr:last-child td {
+  padding-bottom: 1em !important;
+}

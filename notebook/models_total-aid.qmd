@@ -43,6 +43,7 @@ set.seed(1234)
 # Load stuff from targets
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(tbl_functions), .GlobalEnv))
 set_annotation_fonts()
 
 # Tell bayesplot to use the sunset palette for things like pp_check()
@@ -1434,16 +1435,17 @@ p_lab <- ggplot() +
 
 Because of how {marginaleffects} deals with link transformations, we can't get log-scale marginal effects that incorporate the hurdle process—the only way to incorporate hurdling is to use `type = "response"`, which uses `posterior_epred()` behind the scenes, which returns values on the dollar scale. This isn't {marginaleffects}'s fault, since `posterior_epred()` is the only way to get simultaneous results from both the non-hurdled and hurdled parts (since it's the average of the full posterior prediction, or $\textbf{E}[\operatorname{Hurdle\,log-normal}(\pi_{it}, \mu_{it_j}, \sigma_y)]$), and it only returns values on the original response scale.
 
-That's great, but it can also be helpful to think of percent changes (especially with these multi-million dollar values!). Fortunately we can find percent changes pretty easy with calculus:
+That's great, but it can also be helpful to think of percent changes (especially with these multi-million dollar values!). Fortunately we can find percent changes pretty easily with calculus:
 
 $$
 \text{\% change when $x$ is $a$} = \frac{f'(x \mid x = a)}{f(x \mid x = a)}
 $$
 
-```{r cfx-mfx-results-table}
-signif_100k <- label_dollar(accuracy = 1e5, 
-                            prefix = "\\$",
-                            style_negative = "minus")
+```{r build-cfx-mfx-results-table}
+signif_millions <- label_dollar(accuracy = 1,
+                                prefix = "\\$",
+                                style_negative = "minus",
+                                scale_cut = cut_short_scale())
 signif_pct <- label_percent(accuracy = 0.1,
                             style_negative = "minus")
 
@@ -1466,52 +1468,75 @@ mfx_all_posteriors <- bind_rows(
   posteriordraws(mfx_oda_cfx_single$ccsi) %>% mutate(draw = draw / 10),
   posteriordraws(mfx_oda_cfx_single$repress)) 
 
-mfx_just_dollars <- mfx_all_posteriors %>% 
-  group_by(term) %>% 
-  median_hdci(draw) %>%
-  mutate(across(c(draw, .lower, .upper), ~signif_100k(.))) %>% 
-  mutate(interval = glue("[{.lower}, {.upper}]")) %>% 
-  select(term, draw, interval) %>% 
-  pivot_longer(c(draw, interval), values_to = "Average treatment effect") %>% 
-  select(-name) %>% 
-  group_by(term) %>% 
-  mutate(row_num = row_number()) %>% 
-  ungroup()
-
-mfx_just_pct <- mfx_all_posteriors %>% 
-  mutate(pct_change = draw / predicted) %>% 
-  group_by(term) %>% 
-  median_hdci(pct_change) %>% 
-  mutate(across(c(pct_change, .lower, .upper), ~signif_pct(.))) %>% 
-  mutate(pct_change_interval = glue("[{.lower}, {.upper}]")) %>% 
-  select(term, pct_change, pct_change_interval) %>% 
-  pivot_longer(c(pct_change, pct_change_interval), values_to = "Percent change in ODA") %>% 
-  select(-name) %>% 
-  group_by(term) %>% 
-  mutate(row_num = row_number()) %>% 
-  ungroup()
-
 mfx_p_direction <- mfx_all_posteriors %>% 
   group_by(term) %>% 
-  summarize(`p < 0` = round(sum(draw < 0) / n(), 2),
-            `p > 0` = round(sum(draw > 0) / n(), 2)) %>% 
-  mutate(row_num = 1)
+  summarize(pd_lt = round(sum(draw < 0) / n(), 2),
+            pd_gt = round(sum(draw > 0) / n(), 2))
 
-mfx_just_dollars %>% 
-  left_join(mfx_just_pct, by = c("term", "row_num")) %>% 
-  left_join(mfx_p_direction, by = c("term", "row_num")) %>% 
-  left_join(mfx_lookup, by = "term") %>% 
-  arrange(Treatment) %>% 
-  mutate(Treatment = ifelse(row_num == 1, as.character(Treatment), NA)) %>% 
-  select(Treatment, everything(), -term, -row_num) %>% 
-  kbl(align = c("l", "c", "c", "c", "c")) %>% 
-  kable_styling(htmltable_class = "table table-sm light-border") %>% 
-  footnote(general = c("Reported values are posterior median conditional effects rounded to the nearest \\$100,000.", 
-                       "95% HPDI intervals shown in brackets.",
-                       "Percent change calculated by dividing the treatment effect by the predicted value when the count of legal barriers is set to 1 (i.e. one barrier to advocacy, one barrier to entry, etc.), and where the core civil society index is set to 0.5."), 
-           footnote_as_chunk = TRUE)
+mfx_medians <- mfx_all_posteriors %>%
+  mutate(pct_change = draw / predicted) %>% 
+  group_by(term) %>% 
+  median_hdci(draw, pct_change) %>%
+  left_join(mfx_p_direction, by = "term") %>% 
+  mutate(direction = case_when(
+    draw > 0 ~ "more ODA in the next year",
+    draw < 0 ~ "less ODA in the next year"
+  )) %>% 
+  mutate(pd = case_when(
+    draw > 0 ~ pd_gt,
+    draw < 0 ~ pd_lt
+  )) %>% 
+  mutate(pd_nice = label_percent(accuracy = 1)(pd)) %>% 
+  mutate(across(c(draw, draw.lower, draw.upper), ~signif_millions(.))) %>% 
+  mutate(across(c(pct_change, pct_change.lower, pct_change.upper), ~signif_pct(.))) %>% 
+  mutate(draw.interval = glue("[{draw.lower}, {draw.upper}]")) %>% 
+  mutate(pct_change.interval = glue("[{pct_change.lower}, {pct_change.upper}]")) %>% 
+  mutate(draw.nice = glue("{draw}\n{draw.interval}"),
+         pct_change.nice = glue("{pct_change}\n{pct_change.interval}")) %>% 
+  left_join(mfx_lookup, by = "term")
+
+mfx_medians_with_plots <- mfx_medians %>% 
+  group_by(term) %>% 
+  nest() %>% 
+  mutate(sparkplot = map(data, ~spark_bar(.x))) %>% 
+  mutate(sparkname = glue("sparkplots/oda_bar_{term}")) %>% 
+  mutate(saved_plot = map2(sparkplot, sparkname, ~save_sparks(.x, .y)))
+
+mfx_median_clean <- mfx_medians_with_plots %>% 
+  ungroup() %>% 
+  select(-sparkplot) %>% 
+  unnest_wider(saved_plot) %>% 
+  unnest(data) %>% 
+  arrange(Treatment)
 ```
 
+```{r cfx-mfx-results-table}
+#| column: screen-inset-right
+tbl_notes <- c("The probability denotes the percentage of the posterior distribution that falls above or below 0.",
+               "Reported values are the median posterior marginal effect of each treatment variable on the outcome, as millions of USD; 95% highest posterior density intervals (HPDI) shown in brackets.",
+               "The percent change value is calculated by dividing the marginal effect by the predicted value (or \\(f'(x \\mid x = a) / f(x \\mid x = a)\\)) when the count of legal barriers is set to 1 (i.e. one barrier to advocacy, one barrier to entry, etc.), when the core civil society index is set to 0.5, and when civil society repression is set to 0.")
+
+mfx_median_clean %>% 
+  mutate(Probability = "") %>% 
+  # mutate(across(c(draw.nice, pct_change.nice), ~linebreak(., align = "c"))) %>%  # For LaTeX
+  mutate(across(c(draw.nice, pct_change.nice), ~str_replace(., "\\n", "<br>"))) %>% 
+  select(Probability, Treatment, direction, draw.nice, pct_change.nice) %>% 
+  set_names(c(paste0("Probability", footnote_marker_symbol(1)),
+              "Countries that add…", 
+              "…receive…", 
+              paste0("Median", footnote_marker_symbol(2)), 
+              paste0("% change", footnote_marker_symbol(3)))) %>% 
+  kbl(align = c("l", "l", "l", "c", "c"), escape = FALSE) %>% 
+  kable_styling(htmltable_class = "table table-sm table-borderless") %>% 
+  pack_rows("De jure legislation", 1, 4, indent = FALSE) %>% 
+  pack_rows("De facto enforcement", 5, 6, indent = FALSE) %>% 
+  column_spec(1, image = mfx_median_clean$png, width = "20%") %>% 
+  column_spec(2, width = "31%") %>% 
+  column_spec(3, width = "15%") %>% 
+  column_spec(4, width = "17%") %>% 
+  column_spec(5, width = "17%") %>% 
+  footnote(symbol = tbl_notes, general_title = "", footnote_as_chunk = FALSE)
+```
 
 ### Within- and between-country variability
 
