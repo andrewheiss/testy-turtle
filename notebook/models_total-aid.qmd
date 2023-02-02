@@ -783,7 +783,7 @@ mfx_oda_cfx_multiple$total %>%
   pivot_longer(draw) %>% 
   ggplot(aes(x = value, fill = factor(barriers_total))) +
   stat_halfeye(alpha = 0.7) +
-  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(style_negative = "minus", scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
   labs(x = "Conditional effect of\ntotal barriers on ODA in the following year", y = NULL,
        subtitle = glue("P(ATE < 0) = {pull(mfx_total_p_direction, pd_short)}"), fill = NULL) +
@@ -832,7 +832,7 @@ mfx_oda_cfx_multiple$advocacy %>%
   pivot_longer(draw) %>% 
   ggplot(aes(x = value, fill = factor(advocacy))) +
   stat_halfeye(alpha = 0.7) +
-  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(style_negative = "minus", scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
   labs(x = "Conditional effect of\nbarriers to advocacy on ODA in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_advocacy_p_direction, pd_short)}"), fill = NULL) +
@@ -881,7 +881,7 @@ mfx_oda_cfx_multiple$entry %>%
   pivot_longer(draw) %>% 
   ggplot(aes(x = value, fill = factor(entry))) +
   stat_halfeye(alpha = 0.7) +
-  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(style_negative = "minus", scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6, 7)]) +
   labs(x = "Conditional effect of\nbarriers to entry on ODA in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_entry_p_direction, pd_short)}"), fill = NULL) +
@@ -930,7 +930,7 @@ mfx_oda_cfx_multiple$funding %>%
   pivot_longer(draw) %>% 
   ggplot(aes(x = value, fill = factor(funding))) +
   stat_halfeye(alpha = 0.7) +
-  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(style_negative = "minus", scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
   labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_funding_p_direction, pd_short)}"), fill = NULL) +
@@ -950,12 +950,14 @@ m_oda_outcome_ccsi$model_50 %>%
               re_formula = NA) %>% 
   ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
   stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_reverse() +
   scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Peach[1:3]) +
   guides(fill = "none") +
   labs(x = "Core civil society index", y = "Predicted ODA in the following year",
-       caption = "Higher values represent better respect for civil society") +
-  theme_donors()
+       caption = "**x-axis reversed**; lower values represent worse respect for civil society") +
+  theme_donors() +
+  theme(plot.caption = element_markdown())
 ```
 
 ```{r cfx-mfx-ccsi}
@@ -976,13 +978,14 @@ mfx_ccsi_p_direction <- mfx_oda_cfx_multiple$ccsi %>%
 #| out-width: 80%
 mfx_oda_cfx_multiple$ccsi %>% 
   posteriordraws() %>% 
+  mutate(draw = -draw) %>% 
   pivot_longer(draw) %>% 
   ggplot(aes(x = value, fill = factor(v2xcs_ccsi))) +
   stat_halfeye(alpha = 0.7) +
-  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(style_negative = "minus", scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\ncore civil society index on ODA in the following year", y = NULL,
-       subtitle = glue("P(ATE < 0) = {pull(mfx_ccsi_p_direction, pd_short)}"), fill = NULL) +
+  labs(x = "Conditional effect of worsening the\ncore civil society index on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE > 0) = {pull(mfx_ccsi_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
 
@@ -999,12 +1002,14 @@ m_oda_outcome_repress$model_50 %>%
               re_formula = NA)  %>% 
   ggplot(aes(x = v2csreprss, y = .epred)) +
   stat_lineribbon(color = clrs$Peach[7]) +
+  scale_x_reverse(labels = label_number(style_negative = "minus")) +
   scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Peach[1:3]) +
   guides(fill = "none") +
   labs(x = "Civil society repression", y = "Predicted ODA in the following year",
-       caption = "Higher values represent better respect for civil society") +
-  theme_donors()
+       caption = "**x-axis reversed**; lower values represent greater civil society repression") +
+  theme_donors() +
+  theme(plot.caption = element_markdown())
 ```
 
 ```{r cfx-mfx-repress}
@@ -1025,13 +1030,14 @@ mfx_repress_p_direction <- mfx_oda_cfx_multiple$repress %>%
 #| out-width: 80%
 mfx_oda_cfx_multiple$repress %>% 
   posteriordraws() %>% 
+  mutate(draw = -draw) %>% 
   pivot_longer(draw) %>% 
   ggplot(aes(x = value, fill = factor(v2csreprss))) +
   stat_halfeye(alpha = 0.7) +
-  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(style_negative = "minus", scale_cut = cut_short_scale())) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\ncivil society repression on ODA in the following year", y = NULL,
-       subtitle = glue("P(ATE < 0) = {pull(mfx_repress_p_direction, pd_short)}"), fill = NULL) +
+  labs(x = "Conditional effect of worsening\ncivil society repression on ODA in the following year", y = NULL,
+       subtitle = glue("P(ATE > 0) = {pull(mfx_repress_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
 
@@ -1181,7 +1187,7 @@ p1 <- m_oda_outcome_ccsi$model_50 %>%
   ggplot(aes(x = v2xcs_ccsi, y = .epred)) +
   stat_lineribbon(aes(color = "Posterior median"), 
                   alpha = 0.6, point_interval = median_hdci) +
-  scale_x_continuous(breaks = seq(0, 1, by = 0.25)) +
+  scale_x_reverse(breaks = seq(0, 1, by = 0.25)) +
   scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   scale_color_manual(
     values = clrs$Sunset[4],
@@ -1195,7 +1201,7 @@ p1 <- m_oda_outcome_ccsi$model_50 %>%
                          override.aes = list(color = NA, fill = ci_cols))
   ) +
   labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):") +
-  facet_wrap(vars("Core civil society index")) +
+  facet_wrap(vars("Worsening core civil society index")) +
   theme_donors() +
   theme(legend.margin = margin(l = 7.5, r = 7.5))
 
@@ -1207,6 +1213,7 @@ p2 <- m_oda_outcome_repress$model_50 %>%
   ggplot(aes(x = v2csreprss, y = .epred)) +
   stat_lineribbon(aes(color = "Posterior median"), 
                   alpha = 0.6, point_interval = median_hdci) +
+  scale_x_reverse(labels = label_number(style_negative = "minus")) +
   scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   scale_color_manual(
     values = clrs$Sunset[7],
@@ -1219,10 +1226,12 @@ p2 <- m_oda_outcome_repress$model_50 %>%
     guide = guide_legend(order = 2, 
                          override.aes = list(color = NA, fill = ci_cols))
   ) +
-  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):") +
-  facet_wrap(vars("Improvement in civil society repression")) +
+  labs(x = NULL, y = NULL, color = NULL, fill = "Credible interval (HPDI):",
+       caption = "**x-axis reversed**; lower values represent worse respect for and repression of civil society") +
+  facet_wrap(vars("Worsening civil society repression")) +
   theme_donors() +
-  theme(legend.margin = margin(l = 7.5, r = 7.5))
+  theme(legend.margin = margin(l = 7.5, r = 7.5),
+        plot.caption = element_markdown())
 
 p_lab <- ggplot() + 
   annotate(geom = "text", x = 1, y = 1, angle = 90, size = 3.3, fontface = "bold",
@@ -1385,38 +1394,39 @@ p_lab <- ggplot() +
 #|   environment on predicted levels of foreign aid in a typical country"
 p1 <- mfx_oda_cfx_single$ccsi %>% 
   posteriordraws() %>% 
-  mutate(draw = draw / 10) %>% 
+  mutate(draw = -draw / 10) %>% 
   ggplot(aes(x = draw)) +
   stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
                fill = clrs$Sunset[4], .width = c(0.8, 0.95),
                point_interval = median_hdci) +
   geom_vline(xintercept = 0, linewidth = 0.25) +
-  annotate(geom = "richtext", label = glue("P(ATE < 0) = {pull(mfx_ccsi_stats, pd_short)}"),
+  annotate(geom = "richtext", label = glue("P(ATE > 0) = {pull(mfx_ccsi_stats, pd_short)}"),
            x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
            label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
   scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
                                            style_negative = "minus")) +
   scale_fill_ramp_discrete(from = clrs$Sunset[3], guide = "none") +
   labs(x = NULL, y = NULL, fill = NULL) +
-  facet_wrap(vars("A 0.1 unit increase in\nthe core civil society index")) +
+  facet_wrap(vars("A 0.1 unit decrease (worsening) in\nthe core civil society index")) +
   theme_donors() +
   theme(axis.text.y = element_blank())
 
 p2 <- mfx_oda_cfx_single$repress %>% 
   posteriordraws() %>% 
+  mutate(draw = -draw) %>% 
   ggplot(aes(x = draw)) +
   stat_halfeye(aes(fill_ramp = after_stat(x < 0)),
                fill = clrs$Sunset[6], .width = c(0.8, 0.95),
                point_interval = median_hdci) +
   geom_vline(xintercept = 0, linewidth = 0.25) +
-  annotate(geom = "richtext", label = glue("P(ATE < 0) = {pull(mfx_repress_stats, pd_short)}"),
+  annotate(geom = "richtext", label = glue("P(ATE > 0) = {pull(mfx_repress_stats, pd_short)}"),
            x = Inf, y = Inf, hjust = 1, vjust = 1, size = 3,
            label.color = NA, label.margin = unit(rep(0.5, 4), "lines")) +
   scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale(),
                                            style_negative = "minus")) +
   scale_fill_ramp_discrete(from = clrs$Sunset[3], guide = "none") +
   labs(x = NULL, y = NULL, fill = NULL) +
-  facet_wrap(vars("A 1 unit increase (improvement) in\nthe civil society repression score")) +
+  facet_wrap(vars("A 1 unit decrease (worsening) in\nthe civil society repression score")) +
   theme_donors() +
   theme(axis.text.y = element_blank())
 
@@ -1455,8 +1465,8 @@ mfx_lookup <- tribble(
   "advocacy", "One additional barrier to advocacy",
   "entry", "One additional barrier to entry",
   "funding", "One additional barrier to funding",
-  "v2xcs_ccsi", "A 0.1 unit increase in the core civil society index",
-  "v2csreprss", "A 1 unit increase in civil society repression"
+  "v2xcs_ccsi", "A 0.1 unit decrease in the core civil society index (i.e. worse environment)",
+  "v2csreprss", "A 1 unit decrease in the civil society repression score (i.e. more repression)"
 ) %>% 
   mutate(Treatment = fct_inorder(Treatment))
 
@@ -1465,15 +1475,20 @@ mfx_all_posteriors <- bind_rows(
   posteriordraws(mfx_oda_cfx_single$advocacy), 
   posteriordraws(mfx_oda_cfx_single$entry), 
   posteriordraws(mfx_oda_cfx_single$funding),
-  posteriordraws(mfx_oda_cfx_single$ccsi) %>% mutate(draw = draw / 10),
-  posteriordraws(mfx_oda_cfx_single$repress)) 
+  (posteriordraws(mfx_oda_cfx_single$ccsi) %>% mutate(draw = draw / 10)),
+  posteriordraws(mfx_oda_cfx_single$repress)) %>% 
+  mutate(draw = ifelse(term %in% c("v2xcs_ccsi", "v2csreprss"), -draw, draw),
+         dydx = ifelse(term %in% c("v2xcs_ccsi", "v2csreprss"), -dydx, dydx),
+         conf.low_real = ifelse(term %in% c("v2xcs_ccsi", "v2csreprss"), -conf.high, conf.low),
+         conf.high_real = ifelse(term %in% c("v2xcs_ccsi", "v2csreprss"), -conf.low, conf.high),
+         conf.low = conf.low_real, conf.high = conf.high_real)
 
 mfx_p_direction <- mfx_all_posteriors %>% 
   group_by(term) %>% 
   summarize(pd_lt = round(sum(draw < 0) / n(), 2),
             pd_gt = round(sum(draw > 0) / n(), 2))
 
-mfx_medians <- mfx_all_posteriors %>%
+mfx_medians <- mfx_all_posteriors %>% 
   mutate(pct_change = draw / predicted) %>% 
   group_by(term) %>% 
   median_hdci(draw, pct_change) %>%
@@ -1535,7 +1550,7 @@ mfx_median_clean %>%
   column_spec(3, width = "15%") %>% 
   column_spec(4, width = "17%") %>% 
   column_spec(5, width = "17%") %>% 
-  footnote(symbol = tbl_notes, general_title = "", footnote_as_chunk = FALSE)
+  footnote(symbol = tbl_notes, footnote_as_chunk = FALSE)
 ```
 
 ### Within- and between-country variability
