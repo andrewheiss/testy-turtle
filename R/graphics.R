@@ -92,7 +92,7 @@ spark_bar <- function(df) {
 }
 
 save_sparks <- function(gg, name) {
-  width <- 4
+  width <- 3
   height <- 0.45
   
   ggsave(glue("{name}.pdf"), gg, 

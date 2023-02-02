@@ -369,12 +369,12 @@ As always, IPTWs should generally have a mean of 1 and shouldn't be too incredib
 
 The max weight here is `r round(max(df_recip_iptw_total_dom$iptw), 0)`, but once again only a few observations have weights that high. The average is `r round(mean(df_recip_iptw_total_dom$iptw), 2)` and the median is `r round(median(df_recip_iptw_total_dom$iptw), 2)`, which are both essentially 1. Lovely.
 
-```{r iptws-total-oda-dom}
+```{r iptws-total-recip-dom}
 #| code-fold: show
 summary(df_recip_iptw_total_dom$iptw)
 ```
 
-```{r plot-iptws-total-oda-dom}
+```{r plot-iptws-total-recip-dom}
 df_recip_iptw_total_dom %>% 
   ggplot(aes(x = iptw)) +
   geom_histogram(binwidth = 0.5, boundary = 0) +
@@ -385,12 +385,12 @@ df_recip_iptw_total_dom %>%
 
 Same here. The max weight is `r round(max(df_recip_iptw_total_foreign$iptw), 0)`, with an average of `r round(mean(df_recip_iptw_total_foreign$iptw), 2)` and a median of `r round(median(df_recip_iptw_total_foreign$iptw), 2)`, which are both essentially 1, so we're still good.
 
-```{r iptws-total-oda-foreign}
+```{r iptws-total-recip-foreign}
 #| code-fold: show
 summary(df_recip_iptw_total_foreign$iptw)
 ```
 
-```{r plot-iptws-total-oda-foreign}
+```{r plot-iptws-total-recip-foreign}
 df_recip_iptw_total_foreign %>% 
   ggplot(aes(x = iptw)) +
   geom_histogram(binwidth = 0.5, boundary = 0) +
@@ -1148,7 +1148,7 @@ mfx_recip_cfx_multiple_dom$advocacy %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
-  labs(x = "Conditional effect of\nbarriers to advocacy on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to advocacy on\nproportion of aid to domestic NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE < 0) = {1 - pull(mfx_advocacy_p_direction_dom, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1196,7 +1196,7 @@ mfx_recip_cfx_multiple_foreign$advocacy %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
-  labs(x = "Conditional effect of\nbarriers to advocacy on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to advocacy on\nproportion of aid to foreign NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_advocacy_p_direction_foreign, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1249,7 +1249,7 @@ mfx_recip_cfx_multiple_dom$entry %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to entry on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to entry on\nproportion of aid to domestic NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_entry_p_direction_dom, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1297,7 +1297,7 @@ mfx_recip_cfx_multiple_foreign$entry %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to entry on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to entry on\nproportion of aid to foreign NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_entry_p_direction_foreign, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1350,7 +1350,7 @@ mfx_recip_cfx_multiple_dom$funding %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to funding on\nproportion of aid to domestic NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {1 - pull(mfx_funding_p_direction_dom, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1398,7 +1398,7 @@ mfx_recip_cfx_multiple_foreign$funding %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to funding on\nproportion of aid to foreign NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {1 - pull(mfx_funding_p_direction_foreign, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1454,7 +1454,7 @@ mfx_recip_cfx_multiple_dom$ccsi %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\ncore civil society index on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of core civil society index on\nproportion of aid to domestic NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE < 0) = {1 - pull(mfx_ccsi_p_direction_dom, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1504,7 +1504,7 @@ mfx_recip_cfx_multiple_foreign$ccsi %>%
   ggplot(aes(x = value, fill = factor(v2xcs_ccsi))) +
   stat_halfeye(alpha = 0.7) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\ncore civil society index on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of core civil society index on\nproportion of aid to foreign NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_ccsi_p_direction_foreign, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1560,7 +1560,7 @@ mfx_recip_cfx_multiple_dom$repress %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\ncivil society repression on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of civil society repression on\nproportion of aid to domestic NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_repress_p_direction_dom, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1611,7 +1611,7 @@ mfx_recip_cfx_multiple_foreign$repress %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\ncivil society repression on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of civil society repression on\nproportion of aid to foreign NGOs in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_repress_p_direction_foreign, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1739,7 +1739,7 @@ p4 <- m_recip_outcome_funding_dom$model %>%
 
 ```{r plot-cfx-predictions-combined-dom, fig.width=7, fig.height=5}
 #| out-width: 90%
-#| fig-cap: "The effect of de jure anti-NGO legal barriers on predicted 
+#| fig-cap: "The effect of de jure anti-NGO legal barriers on the predicted 
 #|   proportion of USAID aid allocated to domestic NGOs in a typical country"
 
 # Put the shared y-axis label in a separate plot and add it to the combined plot
@@ -1759,7 +1759,7 @@ p_lab <- ggplot() +
 
 ```{r plot-cfx-predictions-defacto-dom, fig.width=7, fig.height=3.6}
 #| out-width: 90%
-#| fig-cap: "The effect of the de facto civil society legal environment on 
+#| fig-cap: "The effect of the de facto civil society legal environment on the 
 #|   predicted proportion of USAID aid channeled to domestic NGOs aid in a 
 #|   typical country"
 p1 <- m_recip_outcome_ccsi_dom$model_50 %>% 
@@ -1959,8 +1959,8 @@ p4 <- mfx_recip_cfx_single_dom$funding %>%
 
 ```{r plot-cfx-mfx-combined-dom, fig.width=7, fig.height=5.5}
 #| out-width: 90%
-#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on 
-#|   foreign aid in a typical country"
+#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on the 
+#|   proportion of USAID aid allocated to domestic NGOs in a typical country"
 p_lab <- ggplot() + 
   annotate(geom = "text", x = 1, y = 1, size = 3.3, fontface = "bold",
            label = "Conditional effect of treatment on proportion\nof aid to domestic NGOs in the following year") +
@@ -1975,8 +1975,8 @@ p_lab <- ggplot() +
 ```{r plot-cfx-mfx-defacto-dom, fig.width=7, fig.height=3.6}
 #| out-width: 90%
 #| fig-cap: "The effect of changes in the de facto civil society legal 
-#|   environment on predicted proportion of contentious aid in a typical 
-#|   country"
+#|   environment on the predicted proportion of USAID aid allocated to domestic 
+#|   NGOs in a typical country"
 p1 <- mfx_recip_cfx_single_dom$ccsi %>% 
   posteriordraws() %>% 
   mutate(draw = -draw / 10) %>% 
@@ -2142,8 +2142,8 @@ p4 <- m_recip_outcome_funding_foreign$model %>%
 
 ```{r plot-cfx-predictions-combined-foreign, fig.width=7, fig.height=5}
 #| out-width: 90%
-#| fig-cap: "The effect of de jure anti-NGO legal barriers on predicted 
-#|   proportion of USAID aid allocated to domestic NGOs in a typical country"
+#| fig-cap: "The effect of de jure anti-NGO legal barriers on the predicted 
+#|   proportion of USAID aid allocated to foreign NGOs in a typical country"
 
 # Put the shared y-axis label in a separate plot and add it to the combined plot
 # https://stackoverflow.com/a/66778622/120898
@@ -2162,7 +2162,7 @@ p_lab <- ggplot() +
 
 ```{r plot-cfx-predictions-defacto-foreign, fig.width=7, fig.height=3.6}
 #| out-width: 90%
-#| fig-cap: "The effect of the de facto civil society legal environment on 
+#| fig-cap: "The effect of the de facto civil society legal environment on the 
 #|   predicted proportion of USAID aid channeled to foreign NGOs aid in a 
 #|   typical country"
 p1 <- m_recip_outcome_ccsi_foreign$model_50 %>% 
@@ -2363,8 +2363,8 @@ p4 <- mfx_recip_cfx_single_foreign$funding %>%
 
 ```{r plot-cfx-mfx-combined-foreign, fig.width=7, fig.height=5.5}
 #| out-width: 90%
-#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on 
-#|   foreign aid in a typical country"
+#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on the 
+#|   proportion of USAID aid allocated to foreign NGOs in a typical country"
 p_lab <- ggplot() + 
   annotate(geom = "text", x = 1, y = 1, size = 3.3, fontface = "bold",
            label = "Conditional effect of treatment on proportion\nof aid to domestic NGOs in the following year") +
@@ -2379,8 +2379,8 @@ p_lab <- ggplot() +
 ```{r plot-cfx-mfx-defacto-foreign, fig.width=7, fig.height=3.6}
 #| out-width: 90%
 #| fig-cap: "The effect of changes in the de facto civil society legal 
-#|   environment on predicted proportion of contentious aid in a typical 
-#|   country"
+#|   environment on the predicted proportion of USAID aid allocated to foreign 
+#|   NGOs in a typical country"
 p1 <- mfx_recip_cfx_single_foreign$ccsi %>% 
   posteriordraws() %>% 
   mutate(draw = -draw / 10) %>% 
@@ -2549,12 +2549,12 @@ select(mfx_median_clean_dom, -png) %>%
   add_header_above(c(" " = 1, "% of USAID aid to domestic NGOs" = 3, "% of USAID aid to foreign NGOs" = 3)) %>% 
   pack_rows("De jure legislation", 1, 4, indent = FALSE) %>% 
   pack_rows("De facto enforcement", 5, 6, indent = FALSE) %>% 
-  column_spec(1, width = "14%") %>% 
+  column_spec(1, width = "16%") %>% 
   column_spec(2, width = "15%") %>% 
-  column_spec(3, image = mfx_median_clean_dom$png, width = "15%") %>% 
+  column_spec(3, image = mfx_median_clean_dom$png, width = "14%") %>% 
   column_spec(4, width = "13%") %>% 
   column_spec(5, width = "15%") %>% 
-  column_spec(6, image = mfx_median_clean_foreign$png, width = "15%") %>% 
+  column_spec(6, image = mfx_median_clean_foreign$png, width = "14%") %>% 
   column_spec(7, width = "13%") %>% 
   footnote(symbol = tbl_notes, footnote_as_chunk = FALSE)
 ```
@@ -2581,7 +2581,7 @@ ziphi <- exp(sigmas_zi$phi$estimate)
 
 The $\phi$ and $\sigma$ terms are roughly the same across all these different models, so we'll just show the results from the total barriers + domestic NGOs model here. We have three uncertainty-related terms to work with:
 
-- $\phi_y$ (`phi`): the precision or variance of aid contentiousness within countries. On the log scale, it's `r round(sigmas_zi$phi$estimate, 2)`, which is `r label_comma()(exp(sigmas_zi$phi$estimate))` when unlogged or exponentiated, which is incredibly precise. That gives us a posterior distribution of the non-zero-inflated part of the model of $\operatorname{Beta}(`r zimuint`, `r round(ziphi, 0)`)$ which looks like this, very narrowly focused around the baseline average 2000 proportion:
+- $\phi_y$ (`phi`): the precision or variance of aid to domestic NGOs within countries. On the log scale, it's `r round(sigmas_zi$phi$estimate, 2)`, which is `r label_comma()(exp(sigmas_zi$phi$estimate))` when unlogged or exponentiated, which is incredibly precise. That gives us a posterior distribution of the non-zero-inflated part of the model of $\operatorname{Beta}(`r zimuint`, `r round(ziphi, 0)`)$ which looks like this, very narrowly focused around the baseline average 2001 proportion:
 
 ```{r plot-zi-phi, warning=FALSE, indent="  "}
 #| out-width: 70%
@@ -2600,12 +2600,12 @@ ggplot() +
   stat_function(geom = "area", fill = clrs$Prism[7],
                 fun = ~dprop(., mean = plogis(beta_mu), size = exp(beta_phi))) +
   scale_x_continuous(labels = label_percent(), limits = c(0.0425, 0.0437)) +
-  labs(title = "Distribution of non-zero-inflated contentious aid in 2000",
+  labs(title = "Distribution of non-zero-inflated aid to domestic NGOs in 2001",
        subtitle = glue::glue("Beta(µ = plogis({round(beta_mu, 2)}), φ = exp({round(beta_phi, 2)})) or Beta(µ = {round(plogis(beta_mu), 3)}, φ = {round(exp(beta_phi), 0)})")) +
   theme_donors()
 ```
 
-- $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_intercept$estimate, 2)`, which means that across or between countries, the proportion of contentious aid varies by 1.5ish logit units.
+- $\sigma_0$ (`sd__(Intercept)` for the `gwcode` group): the variability between countries' baseline averages, or the variability around the $b_{0_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_intercept$estimate, 2)`, which means that across or between countries, the proportion of aid to domestic NGOs varies by 1.5ish logit units.
 
 - $\sigma_3$ (`sd__year_c` for the `gwcode` group): the variability between countries' year effects, or the variability around the $b_{3_j}$ offsets. Here it's `r round(sigmas_zi$sd_gwcode_year_c$estimate, 2)`, which means that average year effects vary by 0.15ish logit units across or between countries.
 

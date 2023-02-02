@@ -290,12 +290,12 @@ Again, IPTWs should generally have a mean of 1 and shouldn't be too incredibly h
 
 The max weight here is `r round(max(df_purpose_iptw_total$iptw), 0)`, but as with H~1~ there are only a few observations with weights that high. The average is `r round(mean(df_purpose_iptw_total$iptw), 2)` and the median is `r round(median(df_purpose_iptw_total$iptw), 2)`, which are both close to 1, which is good.
 
-```{r iptws-total-oda}
+```{r iptws-total-purpose}
 #| code-fold: show
 summary(df_purpose_iptw_total$iptw)
 ```
 
-```{r plot-iptws-total-oda}
+```{r plot-iptws-total-purpose}
 df_purpose_iptw_total %>% 
   ggplot(aes(x = iptw)) +
   geom_histogram(binwidth = 0.5, boundary = 0) +
@@ -728,7 +728,7 @@ mfx_purpose_cfx_multiple$total %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
-  labs(x = "Conditional effect of\ntotal barriers on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of total barriers on the\nproportion of contentious aid in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {1 - pull(mfx_total_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -776,7 +776,7 @@ mfx_purpose_cfx_multiple$advocacy %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6)]) +
-  labs(x = "Conditional effect of\nbarriers to advocacy on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to advocacy on the\nproportion of contentious aid in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_advocacy_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -824,7 +824,7 @@ mfx_purpose_cfx_multiple$entry %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to entry on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to entry on the\nproportion of contentious aid in the following year", y = NULL,
        subtitle = glue("P(ATE > 0) = {pull(mfx_entry_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -872,7 +872,7 @@ mfx_purpose_cfx_multiple$funding %>%
   stat_halfeye(alpha = 0.7) +
   scale_x_continuous(labels = label_number(style_negative = "minus")) +
   scale_fill_manual(values = clrs$Sunset[c(1, 2, 4, 6, 7)]) +
-  labs(x = "Conditional effect of\nbarriers to funding on ODA in the following year", y = NULL,
+  labs(x = "Conditional effect of barriers to funding on the\nproportion of contentious aid in the following year", y = NULL,
        subtitle = glue("P(ATE < 0) = {pull(mfx_funding_p_direction, pd_short)}"), fill = NULL) +
   theme_donors()
 ```
@@ -1100,7 +1100,7 @@ p4 <- m_purpose_outcome_funding$model %>%
 
 ```{r plot-cfx-predictions-combined, fig.width=7, fig.height=5}
 #| out-width: 90%
-#| fig-cap: "The effect of de jure anti-NGO legal barriers on predicted 
+#| fig-cap: "The effect of de jure anti-NGO legal barriers on the predicted 
 #|   proportion of contentious aid in a typical country"
 
 # Put the shared y-axis label in a separate plot and add it to the combined plot
@@ -1120,7 +1120,7 @@ p_lab <- ggplot() +
 
 ```{r plot-cfx-predictions-defacto, fig.width=7, fig.height=3.6}
 #| out-width: 90%
-#| fig-cap: "The effect of the de facto civil society legal environment on 
+#| fig-cap: "The effect of the de facto civil society legal environment on the 
 #|   predicted proportion of contentious aid in a typical country"
 p1 <- m_purpose_outcome_ccsi$model_50 %>% 
   epred_draws(newdata = datagrid(model = m_purpose_outcome_ccsi$model_50,
@@ -1320,8 +1320,8 @@ p4 <- mfx_purpose_cfx_single$funding %>%
 
 ```{r plot-cfx-mfx-combined, fig.width=7, fig.height=5.2}
 #| out-width: 90%
-#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on 
-#|   foreign aid in a typical country"
+#| fig-cap: "The effect of one additional de jure anti-NGO legal barrier on  
+#|   the predicted proportion of contentious aid in a typical country"
 p_lab <- ggplot() + 
   annotate(geom = "text", x = 1, y = 1, size = 3.3, fontface = "bold",
            label = "Conditional effect of treatment on proportion\nof contentious aid in the following year") +
@@ -1336,7 +1336,7 @@ p_lab <- ggplot() +
 ```{r plot-cfx-mfx-defacto, fig.width=7, fig.height=3.6}
 #| out-width: 90%
 #| fig-cap: "The effect of changes in the de facto civil society legal 
-#|   environment on predicted proportion of contentious aid in a typical 
+#|   environment on the predicted proportion of contentious aid in a typical 
 #|   country"
 p1 <- mfx_purpose_cfx_single$ccsi %>% 
   posteriordraws() %>% 
@@ -1470,7 +1470,7 @@ mfx_median_clean %>%
   mutate(Probability = "") %>% 
   # mutate(across(c(draw.nice, pct_change.nice), ~linebreak(., align = "c"))) %>%  # For LaTeX
   mutate(draw_nice = str_replace(draw_nice, "\\n", "<br>")) %>% 
-  select(Probability, Treatment, direction, draw_nice) %>% 
+  select(Treatment, direction, Probability, draw_nice) %>% 
   set_names(c(paste0("Probability", footnote_marker_symbol(1)),
               "Countries that add…", 
               "…receive…", 
@@ -1479,9 +1479,9 @@ mfx_median_clean %>%
   kable_styling(htmltable_class = "table table-sm table-borderless") %>% 
   pack_rows("De jure legislation", 1, 4, indent = FALSE) %>% 
   pack_rows("De facto enforcement", 5, 6, indent = FALSE) %>% 
-  column_spec(1, image = mfx_median_clean$png, width = "20%") %>% 
-  column_spec(2, width = "31%") %>% 
-  column_spec(3, width = "31%") %>% 
+  column_spec(1, width = "34%") %>% 
+  column_spec(2, width = "34%") %>% 
+  column_spec(3, image = mfx_median_clean$png, width = "14%") %>% 
   column_spec(4, width = "18%") %>% 
   footnote(symbol = tbl_notes, footnote_as_chunk = FALSE)
 ```

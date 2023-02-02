@@ -1535,21 +1535,21 @@ mfx_median_clean %>%
   mutate(Probability = "") %>% 
   # mutate(across(c(draw.nice, pct_change.nice), ~linebreak(., align = "c"))) %>%  # For LaTeX
   mutate(across(c(draw.nice, pct_change.nice), ~str_replace(., "\\n", "<br>"))) %>% 
-  select(Probability, Treatment, direction, draw.nice, pct_change.nice) %>% 
-  set_names(c(paste0("Probability", footnote_marker_symbol(1)),
-              "Countries that add…", 
+  select(Treatment, direction, Probability, draw.nice, pct_change.nice) %>% 
+  set_names(c("Countries that add…", 
               "…receive…", 
+              paste0("Probability", footnote_marker_symbol(1)),
               paste0("Median", footnote_marker_symbol(2)), 
               paste0("% change", footnote_marker_symbol(3)))) %>% 
-  kbl(align = c("l", "l", "l", "c", "c"), escape = FALSE) %>% 
+  kbl(align = c("l", "l", "c", "c", "c"), escape = FALSE) %>% 
   kable_styling(htmltable_class = "table table-sm table-borderless") %>% 
   pack_rows("De jure legislation", 1, 4, indent = FALSE) %>% 
   pack_rows("De facto enforcement", 5, 6, indent = FALSE) %>% 
-  column_spec(1, image = mfx_median_clean$png, width = "20%") %>% 
-  column_spec(2, width = "31%") %>% 
-  column_spec(3, width = "15%") %>% 
-  column_spec(4, width = "17%") %>% 
-  column_spec(5, width = "17%") %>% 
+  column_spec(1, width = "35%") %>% 
+  column_spec(2, width = "15%") %>% 
+  column_spec(3, image = mfx_median_clean$png, width = "14%") %>% 
+  column_spec(4, width = "18%") %>% 
+  column_spec(5, width = "18%") %>% 
   footnote(symbol = tbl_notes, footnote_as_chunk = FALSE)
 ```
 
