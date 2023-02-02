@@ -1385,7 +1385,8 @@ p_lab <- ggplot() +
 
 (((p1 | p2) / (p3 | p4)) / p_lab) + 
   plot_layout(heights = c(1, 1, 0.1)) +
-  plot_annotation(caption = "Point shows median value;\nthick bar = 80% credible interval; thin bar = 95% credible interval")
+  plot_annotation(caption = "Point shows median value;\nthick bar = 80% credible interval; thin bar = 95% credible interval",
+                  theme = theme(plot.caption = element_text(family = "Inter")))
 ```
 
 ```{r plot-cfx-mfx-defacto, fig.width=7, fig.height=3.6}
@@ -1438,7 +1439,8 @@ p_lab <- ggplot() +
 
 ((p1 | p2) / p_lab) + 
   plot_layout(heights = c(1, 0.15)) +
-  plot_annotation(caption = "Point shows median value;\nthick bar = 80% credible interval; thin bar = 95% credible interval")
+  plot_annotation(caption = "Point shows median value;\nthick bar = 80% credible interval; thin bar = 95% credible interval",
+                  theme = theme(plot.caption = element_text(family = "Inter")))
 ```
 
 #### Table
