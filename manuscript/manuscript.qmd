@@ -26,8 +26,8 @@ correspondence-prefix: "Correspondence concerning this article should be address
 abstract: |
   Foreign donors routinely use nongovernmental organizations (NGOs) to deliver aid abroad. However, recent decades have witnessed a global cascade of restrictive anti-NGO legislation. How have foreign aid donors responded and adapted to this legal crackdown on NGOs? Using original data from all countries that received aid from 1981–2012, we assess the impact of anti-NGO laws on total flows of official foreign aid, the nature of projects funded, and the channels used for distributing this aid. Overall, we find that donors scale back their operations in repressive countries. However, rather than completely withdraw, we also find that donors redirect funds within restrictive countries by decreasing funds for politically sensitive issues in favor of regime-compatible causes. Donors also channel more aid through domestic rather than foreign NGOs; however, this change is by no means a perfect substitute. We conclude by discussing the implications of our findings for official aid donors, INGOs, and local groups working on contentious causes such as elections, human rights, media, corruption, and advocacy. 
 thanks: |
-  We thank Elizabeth Bloodgood, Sarah Bush, Magnus Lundgren, Christopher Pallas, the participants of the "Beyond the Boomerang" workshop held before the 2017 annual International Studies Association conference, and the participants of the 2017 Midwest Political Science Association conference for their helpful comments. We also acknowledge Lisa Argyle, Paul Bürkner, Ryan Davis, Adam Dynes, Isabella Ghement, Andrew Green, John Holbein, Tristan Mahr, Judith Kelley, Robbie Richards, and Simon Weschle for their invaluable help and advice.
-date: March 24, 2024
+  We thank Elizabeth Bloodgood, Sarah Bush, Magnus Lundgren, Christopher Pallas, the participants of the "Beyond the Boomerang" workshop held before the 2017 annual International Studies Association conference, and the participants of the 2017 Midwest Political Science Association conference for their helpful comments. We also acknowledge Lisa Argyle, Paul Bürkner, Ryan Davis, Adam Dynes, Isabella Ghement, Andrew Green, John Holbein, Trist an Mahr, Judith Kelley, Robbie Richards, and Simon Weschle for their invaluable help and advice.
+date: March 25, 2024
 code-repo: "Access the code, data, and analysis at <https://github.com/andrewheiss/testy-turtle>"
 keywords:
   - NGOs
@@ -57,6 +57,25 @@ options(digits = 3, width = 120,
         knitr.kable.NA = "")
 ```
 
+::: {.callout-note}
+### Note about forthcoming updates
+
+This version of the manuscript relies on two main sources of data: (1) formal NGO restrictions from 1990 to 2013, and (2) OECD and USAID foreign aid commitments from 1981 to 2012. Due to the fact that the ongoing global crackdown on civil society really began to take shape in the late 2010s, the data we originally covered is out of date and does not sufficiently cover the phenomenon we were interested in.
+
+\ 
+
+We are in the process of expanding the time period under study. In the original version of the paper, we used data from AidData, which cleaned and pre-processed OECD foreign aid data through 2013. AidData has not released any further updates to this data, though, so we are working on cleaning raw OECD data to expand coverage to 2023.
+
+\ 
+
+We are also extending our data on formal NGO laws up through 2023 by hand-coding reports from the International Center for Not-for-Profit Law (ICNL), Civicus, Amnesty International annual reports, US Department of State Human Rights Reports, and other sources. We have collected complete data on 29 countries^[Angola, Azerbaijan, Belarus, Bolivia, China, Cuba, Ecuador, Egypt, Ethiopia, Kazakhstan, Kenya, Kuwait, Kyrgyzstan, Laos, Morocco, Nicaragua, Oman, Pakistan, Peru, Russia, Rwanda, Tanzania, Uganda, Ukraine, United Kingdom, United States, Uzbekistan, Vietnam, and Zambia.] and are nearly done with the remaining laws and countries. @fig-updated highlights the changes in cumulative counts of laws since 1990 and compares it with changes in V-Dem's core civil society index, which provides a measure of de facto implementation of civil society laws. Beginning in 2010, the core civil society index began to trend downwards in both democracies and autocracies, reflecting a shift in how states have passed and implemented their civil society laws, and highlighting the need for expanded data beyond 2013.
+
+![De jure and de facto civil society restrictions, 1990–2023](old-output/fig-barriers-summary-new.pdf){#fig-updated}
+
+\ 
+
+Equipped with this updated data, we have also changed our analytical strategy. In this current version of the manuscript, we use basic panel-based models to perform descriptive analysis of the relationship between aid and NGO crackdown, but we avoid making any causal claims and merely speak of associations. In the newest iteration of our project, we use more modern causal inference techniques—marginal structural models and inverse probability weights, first developed in epidemiology and growing in popularity in political science [@BlackwellGlynn:2018]—to isolate and identify the causal effect of NGO crackdowns on different aspects of foreign aid. Complete details of this more rigorous approach can be seen (in draft form) at <https://stats.andrewheiss.com/testy-turtle/>.
+:::
 
 Recent decades have seen a proliferation of laws designed to limit the influence of civil society organizations and nongovernmental organizations (NGOs). While autocratic states have been part of the forefront in the assault against NGOs, this crackdown has had a cascading effect across the globe and is by no mean limited to only autocratic or even hybrid states. Russia’s infamous 2012 Foreign Agent law forced NGOs receiving foreign funding to register as “foreign agents,” and targeted groups for pursuing broadly conceived “political activities.” Combined with subsequent laws, such as the 2015 Undesirable Organizations Law, this had a cascading effect in the region. Hungary, Kyrgyzstan and Tajikistan passed similar anti-NGO laws---all of which were similar in nature to Russia's laws. However, these laws are increasingly pervasive, including among democracies. In 2010, India amended its Foreign Contribution Regulation Act (FCRA), targeting non-profits receiving money from foreign sources and prohibiting those whose activities were "political" in nature. Between 2014 and 2019, 14,500 NGOs were banned from receiving money from abroad [@PressTrustofIndia:2019]. Consequently, foreign contributions into the social sector declined by 40% between 2014 and 2018 [@BhagwatiShethSanghavi:2019]. As of 2017, more than 100 countries have obstructed, repressed, or completely closed the allowable legal space for civil society [@CIVICUS:2017]. 
 
