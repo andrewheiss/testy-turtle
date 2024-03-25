@@ -11,16 +11,17 @@ project:
   render:
     # Render all .qmd files
     - "**/*.qmd"
-    - "!**/*old*.qmd"
-    
+
     # Don't render anything in the manuscript folder because otherwise all the 
     # output gets placed in _site/ only, which is annoying. Instead this folder 
     # needs to be rendered separately, and *before* the overall website project 
     # (which is doable since this whole build process is orchestrated by targets)
     - "!manuscript/"
-  resources:
+  
+  resources: 
     # But *do* place the outputs from the manuscript in the rendered site folder
-    - "manuscript/output/*.pdf"
+    - "manuscript/output/"
+    - "manuscript/output-ms/"
 
 execute:
   # Re-render only when source changes

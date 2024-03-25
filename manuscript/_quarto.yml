@@ -1,0 +1,7 @@
+project:
+  title: "Manuscript"
+
+csl: csl/chicago-author-date.csl
+
+profile: 
+  default: nice
